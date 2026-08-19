@@ -1,4 +1,4 @@
-package com.h.hiveboard.backend.service;
+package com.h.hiveboard.backend.security;
 
 import com.h.hiveboard.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

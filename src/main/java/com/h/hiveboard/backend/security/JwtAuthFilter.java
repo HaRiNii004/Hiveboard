@@ -1,7 +1,5 @@
-package com.h.hiveboard.backend.config;
+package com.h.hiveboard.backend.security;
 
-import com.h.hiveboard.backend.service.CustomUserDetailsService;
-import com.h.hiveboard.backend.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

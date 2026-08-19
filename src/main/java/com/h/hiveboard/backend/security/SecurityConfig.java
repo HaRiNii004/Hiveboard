@@ -1,6 +1,5 @@
-package com.h.hiveboard.backend.config;
+package com.h.hiveboard.backend.security;
 
-import com.h.hiveboard.backend.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

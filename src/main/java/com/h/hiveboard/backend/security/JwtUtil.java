@@ -1,4 +1,4 @@
-package com.h.hiveboard.backend.util;
+package com.h.hiveboard.backend.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

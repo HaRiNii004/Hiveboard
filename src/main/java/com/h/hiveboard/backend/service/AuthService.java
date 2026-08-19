@@ -6,7 +6,7 @@ import com.h.hiveboard.backend.dto.AuthDtos.RegisterRequest;
 import com.h.hiveboard.backend.model.Role;
 import com.h.hiveboard.backend.model.User;
 import com.h.hiveboard.backend.repository.UserRepository;
-import com.h.hiveboard.backend.util.JwtUtil;
+import com.h.hiveboard.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
