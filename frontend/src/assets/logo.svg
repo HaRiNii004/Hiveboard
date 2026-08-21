@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Hiveboard Hive Logo</title>
+  <desc id="desc">A clean orange honeycomb logo made from three connected hexagonal cells.</desc>
+
+  <!-- Transparent background -->
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Upper honeycomb cell -->
+    <path
+      d="M256 62
+         L356 120
+         L356 236
+         L256 294
+         L156 236
+         L156 120 Z"
+      fill="#FF9800"
+      stroke="#FF9800"
+      stroke-width="18"/>
+
+    <!-- White inner cutout of upper cell -->
+    <path
+      d="M256 101
+         L321 139
+         L321 214
+         L256 252
+         L191 214
+         L191 139 Z"
+      fill="#FFFFFF"
+      stroke="none"/>
+
+    <!-- Lower-left honeycomb cell -->
+    <path
+      d="M145 229
+         L256 294
+         L256 411
+         L145 476
+         L34 411
+         L34 294 Z"
+      fill="#FF9800"
+      stroke="#FF9800"
+      stroke-width="18"/>
+
+    <!-- Lower-right honeycomb cell -->
+    <path
+      d="M367 229
+         L478 294
+         L478 411
+         L367 476
+         L256 411
+         L256 294 Z"
+      fill="#FF9800"
+      stroke="#FF9800"
+      stroke-width="18"/>
+
+    <!-- Clean white seams between cells -->
+    <path d="M145 229 L256 294 L367 229" stroke="#FFFFFF" stroke-width="16"/>
+    <path d="M256 294 L256 411" stroke="#FFFFFF" stroke-width="12"/>
+
+    <!-- Minimal bee/wing marks, recreated as crisp vector shapes -->
+    <path d="M116 322 C101 309 88 316 91 333 C94 347 108 350 121 341" fill="#FFFFFF" stroke="none"/>
+    <path d="M143 318 C153 309 166 316 165 331 C164 344 151 350 140 342" fill="#FFFFFF" stroke="none"/>
+    <path d="M396 322 C411 309 424 316 421 333 C418 347 404 350 391 341" fill="#FFFFFF" stroke="none"/>
+    <path d="M369 318 C359 309 346 316 347 331 C348 344 361 350 372 342" fill="#FFFFFF" stroke="none"/>
+
+    <!-- Small central bee bodies -->
+    <path d="M128 333 L132 357" stroke="#FFFFFF" stroke-width="7"/>
+    <path d="M384 333 L380 357" stroke="#FFFFFF" stroke-width="7"/>
+  </g>
+</svg>

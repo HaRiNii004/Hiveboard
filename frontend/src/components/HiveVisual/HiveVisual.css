@@ -1,0 +1,76 @@
+/* Hive Visual Panel Styling */
+
+.hive-visual-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Faint background grid opacity */
+.bg-faint-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.65; /* Adjust to match user's reference image fade */
+  pointer-events: none;
+}
+
+/* Visual Panel Column for Honeycomb cells */
+.visual-column {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 45%;
+  height: 100vh;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 1024px) {
+  .visual-column {
+    display: none; /* Hide honeycomb on tablets/mobiles to focus on the form */
+  }
+}
+
+.honeycomb-svg {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Hexagon cells styling */
+.hex-cell {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hex-appear-animation 1.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  opacity: 0;
+  transition: transform 0.4s var(--transition-spring), fill 0.3s ease;
+  pointer-events: auto; /* allow hover effects */
+}
+
+.hex-cell:hover {
+  transform: scale(1.06);
+}
+
+@keyframes hex-appear-animation {
+  from {
+    opacity: 0;
+    transform: scale(0.55) rotate(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+

@@ -1,0 +1,50 @@
+:root {
+  /* Color Palette */
+  --color-primary: #f28f0f;         /* Warm honey orange */
+  --color-primary-hover: #d97d09;   /* Hover state honey orange */
+  --color-primary-light: #fef5e6;   /* Extremely soft light yellow-orange */
+  --color-accent: #f28f0f;
+  
+  --color-bg-main: #fef9f2;         /* Soft warm cream-yellow base gradient start */
+  --color-bg-end: #fff0db;          /* Soft warm cream-yellow base gradient end */
+  --color-bg-input: #fffcf9;        /* Warm white/cream input background */
+  
+  --color-border-input: #f7e6d2;    /* Soft warm outline color for inputs */
+  --color-border-focus: #f28f0f;    /* Focus orange border */
+  
+  --color-text-brand: #3c2415;      /* Dark chocolate logo & header text */
+  --color-text-body: #614d42;       /* Body copy dark brown */
+  --color-text-muted: #9c8a7e;      /* Muted gray-brown labels */
+  --color-error: #e63946;           /* Alert red */
+  
+  /* Typography */
+  --font-brand: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Borders & Shadows */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --shadow-sm: 0 2px 4px rgba(60, 36, 21, 0.05);
+  --shadow-md: 0 8px 24px rgba(242, 143, 15, 0.08);
+  --shadow-lg: 0 16px 36px rgba(242, 143, 15, 0.12);
+  --shadow-button: 0 4px 14px rgba(242, 143, 15, 0.35);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text-body);
+  background-color: var(--color-bg-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
