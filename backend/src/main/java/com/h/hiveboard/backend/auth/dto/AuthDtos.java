@@ -1,4 +1,4 @@
-package com.h.hiveboard.backend.dto;
+package com.h.hiveboard.backend.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

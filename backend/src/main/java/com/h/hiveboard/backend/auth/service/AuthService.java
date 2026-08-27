@@ -1,11 +1,11 @@
-package com.h.hiveboard.backend.service;
+package com.h.hiveboard.backend.auth.service;
 
-import com.h.hiveboard.backend.dto.AuthDtos.AuthResponse;
-import com.h.hiveboard.backend.dto.AuthDtos.LoginRequest;
-import com.h.hiveboard.backend.dto.AuthDtos.RegisterRequest;
-import com.h.hiveboard.backend.model.Role;
-import com.h.hiveboard.backend.model.User;
-import com.h.hiveboard.backend.repository.UserRepository;
+import com.h.hiveboard.backend.auth.dto.AuthDtos.AuthResponse;
+import com.h.hiveboard.backend.auth.dto.AuthDtos.LoginRequest;
+import com.h.hiveboard.backend.auth.dto.AuthDtos.RegisterRequest;
+import com.h.hiveboard.backend.auth.entity.Role;
+import com.h.hiveboard.backend.auth.entity.User;
+import com.h.hiveboard.backend.auth.repository.UserRepository;
 import com.h.hiveboard.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;

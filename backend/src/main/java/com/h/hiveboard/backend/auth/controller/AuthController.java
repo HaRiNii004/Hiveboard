@@ -1,9 +1,9 @@
-package com.h.hiveboard.backend.controller;
+package com.h.hiveboard.backend.auth.controller;
 
-import com.h.hiveboard.backend.dto.AuthDtos.AuthResponse;
-import com.h.hiveboard.backend.dto.AuthDtos.LoginRequest;
-import com.h.hiveboard.backend.dto.AuthDtos.RegisterRequest;
-import com.h.hiveboard.backend.service.AuthService;
+import com.h.hiveboard.backend.auth.dto.AuthDtos.AuthResponse;
+import com.h.hiveboard.backend.auth.dto.AuthDtos.LoginRequest;
+import com.h.hiveboard.backend.auth.dto.AuthDtos.RegisterRequest;
+import com.h.hiveboard.backend.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

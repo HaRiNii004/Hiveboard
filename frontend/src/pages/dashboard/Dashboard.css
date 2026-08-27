@@ -1,0 +1,628 @@
+.dashboard-page {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--color-bg-main), var(--color-bg-end));
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dashboard-main-content {
+  flex: 1;
+  margin-left: 260px; /* Sidebar offset */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dashboard Content Panel */
+.dashboard-content-panel {
+  flex: 1;
+  padding: 40px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Honeycomb & Bee Decoration */
+.header-decoration {
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.honeycomb-bg {
+  /* Pattern fading out via mask */
+  mask-image: radial-gradient(circle at top right, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 80%);
+  -webkit-mask-image: radial-gradient(circle at top right, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 80%);
+}
+
+/* Welcome Banner */
+.welcome-banner {
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 10;
+}
+
+.welcome-title {
+  font-family: var(--font-brand);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+  margin-bottom: 8px;
+}
+
+.welcome-subtitle {
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--color-text-body);
+}
+
+/* Boards Section */
+.boards-section {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.boards-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.boards-header .section-title {
+  font-family: var(--font-brand);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+}
+
+.boards-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.sort-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.sort-btn {
+  background-color: #ffffff;
+  border: 1px solid #f7e6d2;
+  border-radius: 18px;
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition-fast);
+}
+
+.sort-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.view-toggle {
+  display: flex;
+  background-color: rgba(60, 36, 21, 0.04);
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.view-btn {
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.view-btn.active {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(60, 36, 21, 0.06);
+}
+
+/* Boards Grid Layout */
+.boards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+/* Board Cards styling */
+.board-card {
+  background-color: #ffffff;
+  border: 1px solid #f7e6d2;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.board-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+
+/* Create Board Card */
+.board-card.create-card {
+  border: 2px dashed #fcd299;
+  background-color: rgba(254, 245, 230, 0.3);
+  justify-content: center;
+  align-items: center;
+}
+
+.board-card.create-card:hover {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background-color: rgba(254, 245, 230, 0.5);
+}
+
+.create-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.hexagon-btn {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hexagon-svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transition: transform var(--transition-spring);
+}
+
+.hexagon-btn:hover .hexagon-svg {
+  transform: rotate(15deg) scale(1.05);
+}
+
+.plus-icon {
+  color: var(--color-primary);
+  position: relative;
+  z-index: 2;
+  transition: transform var(--transition-spring);
+}
+
+.hexagon-btn:hover .plus-icon {
+  transform: scale(1.1);
+}
+
+.create-label {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+}
+
+/* Real Board Visual Preview Panel */
+.board-card-preview {
+  height: 140px;
+  background: linear-gradient(135deg, #fffbee, #fff2e0);
+  border-bottom: 1px solid #f7e6d2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Tiny visual previews matching mockup designs */
+/* 1. Roadmap Kanban Preview */
+.preview-roadmap {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-column {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid rgba(242, 143, 15, 0.08);
+}
+
+.col-bar {
+  height: 6px;
+  background-color: #ffd8a1;
+  border-radius: 3px;
+  width: 60%;
+  margin-bottom: 2px;
+}
+
+.col-card {
+  height: 24px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(60, 36, 21, 0.04);
+  border-left: 3px solid var(--color-primary);
+}
+
+.col-card.short {
+  height: 14px;
+}
+
+.col-card.medium {
+  height: 38px;
+}
+
+/* 2. Marketing Analytics Preview */
+.preview-marketing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 0 12px;
+}
+
+.preview-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.preview-line {
+  height: 6px;
+  background-color: #ffd8a1;
+  border-radius: 3px;
+  width: 80%;
+}
+
+.preview-line.wide {
+  width: 95%;
+  height: 8px;
+  background-color: var(--color-primary);
+  opacity: 0.8;
+}
+
+.preview-line.medium { width: 60%; }
+.preview-line.short { width: 40%; }
+
+.preview-pie {
+  width: 58px;
+  height: 58px;
+  transform: rotate(-90deg);
+}
+
+/* 3. Calendar Grid Preview */
+.preview-calendar {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #fce2c2;
+  box-shadow: 0 2px 8px rgba(60, 36, 21, 0.03);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.calendar-header {
+  height: 18px;
+  background-color: #fde5c3;
+  border-bottom: 1px solid #fcd299;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.cal-header-bar {
+  width: 36px;
+  height: 5px;
+  background-color: #d67c00;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.calendar-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  padding: 6px;
+}
+
+.calendar-cell {
+  background-color: #fffaf0;
+  border-radius: 2px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.calendar-dot.yellow { background-color: #ffb821; }
+.calendar-dot.orange { background-color: #f58e14; }
+
+/* 4. Product Sticky Notes Preview */
+.preview-ideas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.idea-note {
+  background-color: #fff9db;
+  border: 1px solid #f5ecb3;
+  border-radius: 4px;
+  box-shadow: 1px 1px 3px rgba(60, 36, 21, 0.04);
+}
+
+.idea-note:nth-child(even) {
+  background-color: #fff5e6;
+  border-color: #ffdca3;
+}
+
+/* 5. Design Mockup Preview */
+.preview-design {
+  width: 100%;
+  height: 100%;
+}
+
+.design-layout {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+}
+
+.design-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.design-bar {
+  height: 6px;
+  background-color: #ffd8a1;
+  border-radius: 3px;
+  width: 90%;
+}
+
+.design-bar.short { width: 50%; }
+
+.design-right {
+  flex: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+.design-artwork {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(242, 143, 15, 0.12);
+}
+
+/* 6. Checklist Tasks Preview */
+.preview-tasks {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #f28f0f;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: #f28f0f;
+  background-color: #fffbf5;
+}
+
+.task-line {
+  height: 6px;
+  background-color: #ffd8a1;
+  border-radius: 3px;
+  width: 75%;
+}
+
+.task-line.short { width: 45%; }
+
+/* 7. OKRs Targets Preview */
+.preview-okrs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+}
+
+.okrs-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.okrs-target {
+  width: 64px;
+  height: 64px;
+}
+
+.okrs-right {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.okr-bar {
+  height: 6px;
+  background-color: #ffd8a1;
+  border-radius: 3px;
+  width: 85%;
+}
+
+.okr-bar.short { width: 40%; }
+
+/* Board Card Info Section */
+.board-card-info {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-emoji {
+  font-size: 16px;
+}
+
+.board-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.board-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.board-updated {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.star-btn:hover, .star-btn.starred {
+  color: var(--color-primary);
+  background-color: rgba(242, 143, 15, 0.08);
+}
+
+/* List View Layout override */
+.boards-grid.list-view {
+  grid-template-columns: 1fr;
+}
+
+.boards-grid.list-view .board-card {
+  height: 72px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.boards-grid.list-view .board-card-preview {
+  display: none;
+}
+
+.boards-grid.list-view .board-card-info {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.boards-grid.list-view .board-card-header {
+  flex: 1;
+}
+
+.boards-grid.list-view .board-card-footer {
+  width: 200px;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+/* Bottom Loop decoration styling */
+.footer-decoration {
+  align-self: flex-end;
+  margin-top: 40px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.footer-bee-path {
+  display: block;
+}

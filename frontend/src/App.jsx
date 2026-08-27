@@ -3,17 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './styles/variables.css';
 import Login from './pages/Login/Login';
 import Signup from './pages/Signup/Signup';
-
-// Simple placeholder so /login has somewhere to redirect to after auth.
-// Swap this out once you build the real dashboard page.
-function Dashboard() {
-  return (
-    <div style={{ padding: 40, fontFamily: 'var(--font-body)' }}>
-      <h1>Dashboard</h1>
-      <p>You're logged in. Board list goes here (Phase 2).</p>
-    </div>
-  );
-}
+import Dashboard from './pages/dashboard/Dashboard';
 
 export default function App() {
   return (

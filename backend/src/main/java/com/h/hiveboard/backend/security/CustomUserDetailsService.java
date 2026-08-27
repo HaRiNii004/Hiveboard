@@ -1,6 +1,6 @@
 package com.h.hiveboard.backend.security;
 
-import com.h.hiveboard.backend.repository.UserRepository;
+import com.h.hiveboard.backend.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,4 +1,4 @@
-package com.h.hiveboard.backend.model;
+package com.h.hiveboard.backend.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
