@@ -12,3 +12,7 @@ export const getBoards = () => {
 export const getBoardDetail = (boardId) => {
   return api.get(`/boards/${boardId}`);
 };
+
+export const updateBoard = (boardId, name, description) => {
+  return api.put(`/boards/${boardId}`, { name, description });
+};

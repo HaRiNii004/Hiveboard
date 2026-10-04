@@ -8,7 +8,9 @@
 
 .dashboard-main-content {
   flex: 1;
-  margin-left: 260px; /* Sidebar offset */
+  margin-left: var(--sidebar-width); /* Sidebar offset */
+  min-width: 0;
+  transition: margin-left var(--transition-smooth);
   display: flex;
   flex-direction: column;
 }
@@ -369,6 +371,32 @@
 
 .star-btn:hover, .star-btn.starred {
   color: var(--color-primary);
+  background-color: rgba(242, 143, 15, 0.08);
+}
+
+.board-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.edit-btn:hover,
+.edit-btn:focus-visible {
+  color: var(--board-accent, var(--color-primary));
   background-color: rgba(242, 143, 15, 0.08);
 }
 

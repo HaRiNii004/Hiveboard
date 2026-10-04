@@ -33,6 +33,13 @@
   --transition-fast: 0.15s ease;
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-spring: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Sidebar width (Sidebar.jsx toggles .sidebar-collapsed on <html>) */
+  --sidebar-width: 260px;
+}
+
+:root.sidebar-collapsed {
+  --sidebar-width: 76px;
 }
 
 * {

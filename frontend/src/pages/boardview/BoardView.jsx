@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, AlignLeft } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import CreateItemPopup from './CreateItemPopup';
 import { getBoardDetail } from '../../api/boards';
-import { createList } from '../../api/lists';
-import { createCard } from '../../api/cards';
+import { createList, updateList } from '../../api/lists';
+import { createCard, updateCard } from '../../api/cards';
 import { getColorScheme } from '../../utils/boardColors';
 import './BoardView.css';
 
@@ -43,7 +43,8 @@ export default function BoardView() {
 
   // Result is tagged with the boardId it belongs to, so switching boards shows loading
   const [result, setResult] = useState(null);
-  // null | { type: 'list' } | { type: 'card', listId, listName }
+  // null | { type: 'list' } | { type: 'editList', list }
+  //      | { type: 'card', listId, listName } | { type: 'editCard', listId, listName, card }
   const [popup, setPopup] = useState(null);
 
   const loading = !result || result.boardId !== boardId;
@@ -65,24 +66,44 @@ export default function BoardView() {
     fetchBoard(boardId).then(setResult);
   };
 
-  const updateBoard = (updater) => {
+  const setBoard = (updater) => {
     setResult(prev => ({ ...prev, board: updater(prev.board) }));
+  };
+
+  // Apply `updater` to one list, leaving the others untouched
+  const setList = (listId, updater) => {
+    setBoard(b => ({
+      ...b,
+      lists: b.lists.map(list => (list.id === listId ? updater(list) : list))
+    }));
   };
 
   const handleCreateList = async ({ name }) => {
     const response = await createList(boardId, name);
-    updateBoard(b => ({ ...b, lists: [...b.lists, response.data] }));
+    setBoard(b => ({ ...b, lists: [...b.lists, response.data] }));
+    setPopup(null);
+  };
+
+  const handleUpdateList = async ({ name }) => {
+    const listId = popup.list.id;
+    const response = await updateList(listId, name);
+    setList(listId, list => ({ ...list, name: response.data.name }));
     setPopup(null);
   };
 
   const handleCreateCard = async ({ title, description }) => {
     const { listId } = popup;
     const response = await createCard(listId, title, description);
-    updateBoard(b => ({
-      ...b,
-      lists: b.lists.map(list =>
-        list.id === listId ? { ...list, cards: [...list.cards, response.data] } : list
-      )
+    setList(listId, list => ({ ...list, cards: [...list.cards, response.data] }));
+    setPopup(null);
+  };
+
+  const handleUpdateCard = async ({ title, description }) => {
+    const { listId, card } = popup;
+    const response = await updateCard(card.id, title, description);
+    setList(listId, list => ({
+      ...list,
+      cards: list.cards.map(c => (c.id === card.id ? response.data : c))
     }));
     setPopup(null);
   };
@@ -103,10 +124,12 @@ export default function BoardView() {
             '--board-text': scheme.text
           }}
         >
-          <button className="boardview-back-btn" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft size={16} />
-            All boards
-          </button>
+          <nav className="boardview-breadcrumb" aria-label="Breadcrumb">
+            <button className="boardview-back-btn" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft size={16} />
+              All boards
+            </button>
+          </nav>
 
           {loading && <p className="boardview-status">Loading board...</p>}
 
@@ -119,17 +142,11 @@ export default function BoardView() {
 
           {!loading && board && (
             <>
-              {/* Board header */}
-              <header className="boardview-header">
-                <div className="boardview-header-text">
-                  <h1 className="boardview-title">{board.name}</h1>
-                  {board.description && <p className="boardview-description">{board.description}</p>}
-                </div>
-                <button className="boardview-create-list-btn" onClick={() => setPopup({ type: 'list' })}>
-                  <Plus size={18} />
-                  Create a list
-                </button>
-              </header>
+              {/* Board name & description */}
+              <div className="boardview-heading">
+                <h1 className="boardview-title">{board.name}</h1>
+                {board.description && <p className="boardview-description">{board.description}</p>}
+              </div>
 
               {/* Lists */}
               <div className="boardview-lists">
@@ -137,14 +154,38 @@ export default function BoardView() {
                   <section key={list.id} className="board-list">
                     <div className="board-list-header">
                       <h2 className="board-list-title" title={list.name}>{list.name}</h2>
-                      <span className="board-list-count">{list.cards.length}</span>
+                      <div className="board-list-header-actions">
+                        <span className="board-list-count">{list.cards.length}</span>
+                        <button
+                          className="boardview-edit-btn small"
+                          onClick={() => setPopup({ type: 'editList', list })}
+                          aria-label={`Edit list ${list.name}`}
+                          title="Edit list"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="board-list-cards">
                       {list.cards.map(card => (
                         <article key={card.id} className="list-card">
                           <h3 className="list-card-title">{card.title}</h3>
-                          {card.description && <p className="list-card-description">{card.description}</p>}
+                          <div className="list-card-actions">
+                            {card.description && (
+                              <span className="list-card-has-description" title="This card has a description">
+                                <AlignLeft size={14} />
+                              </span>
+                            )}
+                            <button
+                              className="boardview-edit-btn small"
+                              onClick={() => setPopup({ type: 'editCard', listId: list.id, listName: list.name, card })}
+                              aria-label={`Edit card ${card.title}`}
+                              title="Edit card"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          </div>
                         </article>
                       ))}
                       {list.cards.length === 0 && <p className="board-list-empty">No cards yet</p>}
@@ -182,6 +223,19 @@ export default function BoardView() {
         />
       )}
 
+      {popup && popup.type === 'editList' && (
+        <CreateItemPopup
+          heading="Edit list"
+          subheading={`Rename "${popup.list.name}".`}
+          fields={LIST_FIELDS}
+          initialValues={{ name: popup.list.name }}
+          submitLabel="Save Changes"
+          submittingLabel="Saving..."
+          onSubmit={handleUpdateList}
+          onClose={() => setPopup(null)}
+        />
+      )}
+
       {popup && popup.type === 'card' && (
         <CreateItemPopup
           heading="Add a card"
@@ -189,6 +243,19 @@ export default function BoardView() {
           fields={CARD_FIELDS}
           submitLabel="Add Card"
           onSubmit={handleCreateCard}
+          onClose={() => setPopup(null)}
+        />
+      )}
+
+      {popup && popup.type === 'editCard' && (
+        <CreateItemPopup
+          heading="Edit card"
+          subheading={`Card in "${popup.listName}".`}
+          fields={CARD_FIELDS}
+          initialValues={{ title: popup.card.title, description: popup.card.description }}
+          submitLabel="Save Changes"
+          submittingLabel="Saving..."
+          onSubmit={handleUpdateCard}
           onClose={() => setPopup(null)}
         />
       )}

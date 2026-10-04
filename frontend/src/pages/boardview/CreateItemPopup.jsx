@@ -2,13 +2,23 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import './CreateItemPopup.css';
 
-// Reusable "create" popup for the board view (used for lists and cards).
+// Reusable create/edit popup for the board view (used for the board, lists and cards).
 // `fields` describes the inputs, e.g.
 //   { name: 'title', label: 'Card title', required: true, maxLength: 150, multiline: false }
+// `initialValues` pre-fills the inputs when editing.
 // `onSubmit(values)` must return a promise; if it rejects, the error is shown in the popup.
-export default function CreateItemPopup({ heading, subheading, fields, submitLabel, onSubmit, onClose }) {
+export default function CreateItemPopup({
+  heading,
+  subheading,
+  fields,
+  initialValues = {},
+  submitLabel,
+  submittingLabel = 'Creating...',
+  onSubmit,
+  onClose
+}) {
   const [values, setValues] = useState(() =>
-    Object.fromEntries(fields.map(field => [field.name, '']))
+    Object.fromEntries(fields.map(field => [field.name, initialValues[field.name] || '']))
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -133,7 +143,7 @@ export default function CreateItemPopup({ heading, subheading, fields, submitLab
               Cancel
             </button>
             <button type="submit" className="item-popup-btn primary" disabled={loading || missingRequired}>
-              {loading ? 'Creating...' : submitLabel}
+              {loading ? submittingLabel : submitLabel}
             </button>
           </div>
         </form>

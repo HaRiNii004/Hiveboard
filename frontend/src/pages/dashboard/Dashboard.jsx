@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, ChevronDown, Grid, List as ListIcon, Plus, User, Calendar } from 'lucide-react';
+import { Star, ChevronDown, Grid, List as ListIcon, Plus, User, Calendar, Pencil } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import Bee from '../../components/Bee/Bee';
@@ -50,6 +50,7 @@ export default function Dashboard() {
   const [sortBy] = useState('Last opened');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const [editingBoard, setEditingBoard] = useState(null);
 
   const storedUser = localStorage.getItem('user');
   let userName = 'Harini Selvaraj';
@@ -93,6 +94,19 @@ export default function Dashboard() {
   };
 
   // Add the board returned by POST /api/boards to the top of the grid
+  const handleEditBoard = (board, e) => {
+    e.stopPropagation();
+    setEditingBoard(board);
+  };
+
+  // Merge the PUT /api/boards/{id} response into the card, keeping local state like `starred`
+  const handleBoardUpdated = (updated) => {
+    setBoards(prev => prev.map(b =>
+      b.id === updated.id ? { ...b, name: updated.name, description: updated.description } : b
+    ));
+    setEditingBoard(null);
+  };
+
   const handleBoardCreated = (created) => {
     setBoards(prev => [toBoard(created), ...prev]);
     setShowCreatePopup(false);
@@ -259,13 +273,25 @@ export default function Dashboard() {
                           <span className="board-meta-text">{formatCreatedDate(board.createdAt)}</span>
                         </span>
                       </div>
-                      <button
-                        className={`star-btn ${board.starred ? 'starred' : ''}`}
-                        onClick={(e) => handleToggleStar(board.id, e)}
-                        aria-label={board.starred ? 'Unstar Board' : 'Star Board'}
-                      >
-                        <Star size={16} fill={board.starred ? '#f28f0f' : 'transparent'} />
-                      </button>
+                      <div className="board-card-actions">
+                        <button
+                          className="edit-btn"
+                          onClick={(e) => handleEditBoard(board, e)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          aria-label="Edit Board"
+                          title="Edit board"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          className={`star-btn ${board.starred ? 'starred' : ''}`}
+                          onClick={(e) => handleToggleStar(board.id, e)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          aria-label={board.starred ? 'Unstar Board' : 'Star Board'}
+                        >
+                          <Star size={16} fill={board.starred ? '#f28f0f' : 'transparent'} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -297,6 +323,14 @@ export default function Dashboard() {
 
         </main>
       </div>
+
+      {editingBoard && (
+        <CreatePopup
+          board={editingBoard}
+          onClose={() => setEditingBoard(null)}
+          onUpdated={handleBoardUpdated}
+        />
+      )}
 
       {showCreatePopup && (
         <CreatePopup

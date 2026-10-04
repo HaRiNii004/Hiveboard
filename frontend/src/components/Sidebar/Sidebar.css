@@ -1,5 +1,5 @@
 .sidebar-container {
-  width: 260px;
+  width: var(--sidebar-width);
   height: 100vh;
   background-color: #fef5e6; /* Soft cream color per mockup */
   border-right: 1px solid #f7e6d2;
@@ -11,6 +11,8 @@
   top: 0;
   z-index: 100;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--transition-smooth), padding var(--transition-smooth);
 }
 
 /* Brand Header */
@@ -25,6 +27,7 @@
 .brand-logo {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
 }
 
 .brand-text {
@@ -74,6 +77,7 @@
 
 .nav-icon {
   color: inherit;
+  flex-shrink: 0;
 }
 
 /* Workspaces Section */
@@ -182,4 +186,66 @@
 .footer-item.logout:hover {
   color: var(--color-error);
   background-color: rgba(230, 57, 70, 0.05);
+}
+
+.footer-icon {
+  flex-shrink: 0;
+}
+
+/* Collapse / expand arrow on the sidebar's right edge */
+.sidebar-toggle {
+  position: fixed;
+  top: 38px;
+  left: calc(var(--sidebar-width) - 14px);
+  z-index: 110;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #f7e6d2;
+  background-color: #ffffff;
+  color: var(--color-text-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: left var(--transition-smooth), color var(--transition-fast),
+    border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.sidebar-toggle:hover,
+.sidebar-toggle:focus-visible {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+/* Collapsed: icons only, centred */
+.sidebar-container.collapsed {
+  padding: 32px 12px;
+}
+
+.sidebar-container.collapsed .brand-text,
+.sidebar-container.collapsed .nav-label,
+.sidebar-container.collapsed .section-header,
+.sidebar-container.collapsed .workspace-label,
+.sidebar-container.collapsed .workspace-chevron,
+.sidebar-container.collapsed .footer-label {
+  display: none;
+}
+
+.sidebar-container.collapsed .sidebar-brand,
+.sidebar-container.collapsed .nav-item,
+.sidebar-container.collapsed .workspace-item,
+.sidebar-container.collapsed .footer-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-container,
+  .sidebar-toggle {
+    transition: none;
+  }
 }

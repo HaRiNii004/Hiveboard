@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { createBoard } from '../../../api/boards';
+import { createBoard, updateBoard } from '../../../api/boards';
 import './CreatePopup.css';
 
 // Matches the default VARCHAR(255) columns on the boards table
 const NAME_MAX = 100;
 const DESCRIPTION_MAX = 255;
 
-export default function CreatePopup({ onClose, onCreated }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+// Pass `board` to edit an existing board instead of creating a new one
+export default function CreatePopup({ board, onClose, onCreated, onUpdated }) {
+  const isEdit = Boolean(board);
+  const [name, setName] = useState(isEdit ? board.name : '');
+  const [description, setDescription] = useState(isEdit ? board.description || '' : '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,8 +38,13 @@ export default function CreatePopup({ onClose, onCreated }) {
 
     setLoading(true);
     try {
-      const response = await createBoard(trimmedName, description.trim() || null);
-      onCreated(response.data);
+      if (isEdit) {
+        const response = await updateBoard(board.id, trimmedName, description.trim() || null);
+        onUpdated(response.data);
+      } else {
+        const response = await createBoard(trimmedName, description.trim() || null);
+        onCreated(response.data);
+      }
     } catch (err) {
       console.error(err);
       const data = err.response && err.response.data;
@@ -66,8 +73,10 @@ export default function CreatePopup({ onClose, onCreated }) {
         {/* Header */}
         <div className="popup-header">
           <div>
-            <h2 id="create-board-title" className="popup-title">Create Board</h2>
-            <p className="popup-subtitle">Give your new hive a name to get started.</p>
+            <h2 id="create-board-title" className="popup-title">{isEdit ? 'Edit Board' : 'Create Board'}</h2>
+            <p className="popup-subtitle">
+              {isEdit ? 'Update the name and description of this board.' : 'Give your new hive a name to get started.'}
+            </p>
           </div>
           <button
             type="button"
@@ -125,7 +134,9 @@ export default function CreatePopup({ onClose, onCreated }) {
               Cancel
             </button>
             <button type="submit" className="popup-btn primary" disabled={loading || !name.trim()}>
-              {loading ? 'Creating...' : 'Create Board'}
+              {isEdit
+                ? (loading ? 'Saving...' : 'Save Changes')
+                : (loading ? 'Creating...' : 'Create Board')}
             </button>
           </div>
         </form>

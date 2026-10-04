@@ -9,7 +9,8 @@
 .boardview-main-content {
   flex: 1;
   min-width: 0;
-  margin-left: 260px; /* Sidebar offset */
+  margin-left: var(--sidebar-width); /* Sidebar offset */
+  transition: margin-left var(--transition-smooth);
   display: flex;
   flex-direction: column;
 }
@@ -23,8 +24,16 @@
   flex-direction: column;
 }
 
+.boardview-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 12px;
+}
+
 .boardview-back-btn {
-  align-self: flex-start;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -35,8 +44,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  padding: 6px 10px 6px 0;
-  margin-bottom: 16px;
+  padding: 6px 0;
   transition: var(--transition-fast);
 }
 
@@ -44,62 +52,54 @@
   color: var(--board-accent, var(--color-primary));
 }
 
-/* Board header */
-.boardview-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  background-color: var(--board-bg, var(--color-primary-light));
-  border: 1px solid #f7e6d2;
-  border-left: 6px solid var(--board-accent, var(--color-primary));
-  border-radius: var(--radius-lg);
-  padding: 20px 24px;
+/* Board name & description */
+.boardview-heading {
   margin-bottom: 28px;
-  box-shadow: var(--shadow-sm);
-}
-
-.boardview-header-text {
-  min-width: 0;
+  max-width: 800px;
 }
 
 .boardview-title {
   font-family: var(--font-brand);
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  color: var(--board-text, var(--color-text-brand));
+  color: var(--color-text-brand);
   overflow-wrap: anywhere;
 }
 
 .boardview-description {
   margin-top: 6px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
-  color: var(--board-text, var(--color-text-body));
-  opacity: 0.85;
+  color: var(--color-text-body);
   overflow-wrap: anywhere;
 }
 
-.boardview-create-list-btn {
+/* Pencil buttons for editing lists and cards */
+.boardview-edit-btn {
   flex-shrink: 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  background-color: var(--color-primary);
-  color: #ffffff;
+  justify-content: center;
+  background: none;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 10px 16px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 50%;
+  padding: 6px;
+  color: var(--board-text, var(--color-text-muted));
+  opacity: 0.7;
   cursor: pointer;
-  box-shadow: var(--shadow-button);
   transition: var(--transition-fast);
 }
 
-.boardview-create-list-btn:hover {
-  background-color: var(--color-primary-hover);
+.boardview-edit-btn:hover,
+.boardview-edit-btn:focus-visible {
+  opacity: 1;
+  color: var(--board-accent, var(--color-primary));
+  background-color: rgba(242, 143, 15, 0.1);
+}
+
+.boardview-edit-btn.small {
+  padding: 4px;
+  color: var(--color-text-muted);
 }
 
 /* Lists row: scrolls sideways when there are many lists */
@@ -140,6 +140,13 @@
   text-overflow: ellipsis;
 }
 
+.board-list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .board-list-count {
   flex-shrink: 0;
   min-width: 24px;
@@ -172,10 +179,14 @@
 
 /* Card inside a list */
 .list-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   background-color: #ffffff;
   border: 1px solid #f7e6d2;
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: 10px 8px 10px 14px;
   box-shadow: var(--shadow-sm);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -186,22 +197,27 @@
 }
 
 .list-card-title {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-brand);
   overflow-wrap: anywhere;
 }
 
-.list-card-description {
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--color-text-body);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
+.list-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.list-card-has-description {
+  display: flex;
+  padding: 4px;
+  color: var(--color-text-muted);
 }
 
 .board-list-add-card-btn {
@@ -286,10 +302,6 @@
 @media (max-width: 640px) {
   .boardview-content-panel {
     padding: 16px;
-  }
-
-  .boardview-header {
-    flex-direction: column;
   }
 
   .board-list,
