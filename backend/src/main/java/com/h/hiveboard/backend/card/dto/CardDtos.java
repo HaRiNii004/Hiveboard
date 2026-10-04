@@ -9,9 +9,11 @@ import java.util.UUID;
 
 public class CardDtos {
 
-    public record CreateCardRequest(@NotBlank String title, String description) {}
+    // labelIds: options from the card's board to select (null or empty = none).
+    public record CreateCardRequest(@NotBlank String title, String description, List<UUID> labelIds) {}
 
-    public record UpdateCardRequest(@NotBlank String title, String description) {}
+    // labelIds: the full new selection; null leaves the card's labels unchanged.
+    public record UpdateCardRequest(@NotBlank String title, String description, List<UUID> labelIds) {}
 
     // Moving a card to a different column (drag across lists).
     public record MoveCardRequest(@NotNull UUID targetListId) {}

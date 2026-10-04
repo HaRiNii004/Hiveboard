@@ -97,7 +97,7 @@ public class BoardListService {
 
     private ListResponse toResponse(BoardList list) {
         List<CardResponse> cards = list.getCards().stream()
-                .map(c -> new CardResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPosition()))
+                .map(CardResponse::from)
                 .toList();
         return new ListResponse(list.getId(), list.getName(), list.getPosition(), cards);
     }

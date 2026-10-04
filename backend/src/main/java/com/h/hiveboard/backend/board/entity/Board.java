@@ -2,6 +2,7 @@ package com.h.hiveboard.backend.board.entity;
 
 import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.boardlist.entity.BoardList;
+import com.h.hiveboard.backend.label.entity.Label;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,6 +40,15 @@ public class Board {
     @OrderBy("position ASC")
     @Builder.Default
     private List<BoardList> lists = new ArrayList<>();
+
+    // Options for the cards' multi-select labels field; deleted with the board.
+    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    private List<Label> labels = new ArrayList<>();
+
+    // What the labels field is called on this board (null means the default "Labels").
+    private String labelsTitle;
 
     @CreationTimestamp
     private Instant createdAt;

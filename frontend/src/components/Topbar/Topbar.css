@@ -69,6 +69,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-left: auto; /* Stay on the right even when the search bar is hidden */
 }
 
 .action-btn {

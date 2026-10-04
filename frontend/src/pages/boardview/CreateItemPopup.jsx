@@ -5,6 +5,9 @@ import './CreateItemPopup.css';
 // Reusable create/edit popup for the board view (used for the board, lists and cards).
 // `fields` describes the inputs, e.g.
 //   { name: 'title', label: 'Card title', required: true, maxLength: 150, multiline: false }
+// A field with `type: 'custom'` renders its own input via
+//   render({ value, onChange, disabled })  — onChange accepts a value or an updater (prev) => next
+// and keeps a non-string value (e.g. an array of label ids), starting from `defaultValue`.
 // `initialValues` pre-fills the inputs when editing.
 // `onSubmit(values)` must return a promise; if it rejects, the error is shown in the popup.
 export default function CreateItemPopup({
@@ -18,7 +21,10 @@ export default function CreateItemPopup({
   onClose
 }) {
   const [values, setValues] = useState(() =>
-    Object.fromEntries(fields.map(field => [field.name, initialValues[field.name] || '']))
+    Object.fromEntries(fields.map(field => [
+      field.name,
+      initialValues[field.name] ?? (field.type === 'custom' ? field.defaultValue : '')
+    ]))
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +41,10 @@ export default function CreateItemPopup({
   }, [loading, onClose]);
 
   const handleChange = (name, value) => {
-    setValues(prev => ({ ...prev, [name]: value }));
+    setValues(prev => ({
+      ...prev,
+      [name]: typeof value === 'function' ? value(prev[name]) : value
+    }));
   };
 
   const missingRequired = fields.some(field => field.required && !values[field.name].trim());
@@ -50,9 +59,12 @@ export default function CreateItemPopup({
       return;
     }
 
-    // Trim everything; send empty optional fields as null
+    // Trim text; send empty optional text fields as null; custom values as-is
     const trimmed = Object.fromEntries(
-      fields.map(field => [field.name, values[field.name].trim() || null])
+      fields.map(field => [
+        field.name,
+        field.type === 'custom' ? values[field.name] : values[field.name].trim() || null
+      ])
     );
 
     setLoading(true);
@@ -103,6 +115,18 @@ export default function CreateItemPopup({
 
         <form className="item-popup-form" onSubmit={handleSubmit}>
           {fields.map((field, index) => {
+            if (field.type === 'custom') {
+              return (
+                <div key={field.name} className="item-popup-field">
+                  {field.render({
+                    value: values[field.name],
+                    onChange: (value) => handleChange(field.name, value),
+                    disabled: loading
+                  })}
+                </div>
+              );
+            }
+
             const inputId = `item-popup-${field.name}`;
             const inputProps = {
               id: inputId,

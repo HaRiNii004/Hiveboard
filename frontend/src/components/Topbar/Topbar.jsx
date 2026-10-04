@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Bell, HelpCircle, ChevronDown } from 'lucide-react';
 import './Topbar.css';
 
-export default function Topbar() {
+export default function Topbar({ showSearch = true }) {
   const storedUser = localStorage.getItem('user');
   let userName = 'Harini Selvaraj';
   
@@ -29,18 +29,20 @@ export default function Topbar() {
 
   return (
     <header className="topbar-container">
-      {/* Search Input bar */}
-      <div className="topbar-search">
-        <Search className="search-icon" size={18} />
-        <input 
-          type="text" 
-          placeholder="Search boards..." 
-          className="search-input"
-        />
-        <div className="search-shortcut">
-          <kbd className="shortcut-key">⌘K</kbd>
+      {/* Search Input bar (dashboard only) */}
+      {showSearch && (
+        <div className="topbar-search">
+          <Search className="search-icon" size={18} />
+          <input
+            type="text"
+            placeholder="Search boards..."
+            className="search-input"
+          />
+          <div className="search-shortcut">
+            <kbd className="shortcut-key">⌘K</kbd>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Right Quick Actions & User Profile */}
       <div className="topbar-actions">

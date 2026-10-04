@@ -16,3 +16,8 @@ export const getBoardDetail = (boardId) => {
 export const updateBoard = (boardId, name, description) => {
   return api.put(`/boards/${boardId}`, { name, description });
 };
+
+// Renames the board's labels field (e.g. "Labels" -> "Tags")
+export const updateLabelsTitle = (boardId, labelsTitle) => {
+  return api.patch(`/boards/${boardId}/labels-title`, { labelsTitle });
+};

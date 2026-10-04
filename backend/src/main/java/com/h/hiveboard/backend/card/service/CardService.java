@@ -10,6 +10,7 @@ import com.h.hiveboard.backend.card.entity.Card;
 import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.card.repository.CardRepository;
 import com.h.hiveboard.backend.boardlist.service.BoardListService;
+import com.h.hiveboard.backend.label.service.LabelService;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import com.h.hiveboard.backend.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class CardService {
 
     private final CardRepository cardRepository;
     private final BoardListService boardListService; // reused for its ownership check
+    private final LabelService labelService;         // validates label ids belong to the board
 
     @Transactional
     public CardResponse createCard(UUID listId, User user, CreateCardRequest request) {
@@ -38,6 +40,7 @@ public class CardService {
                 .description(request.description())
                 .position(nextPosition)
                 .boardList(list)
+                .labels(labelService.resolveBoardLabels(list.getBoard(), request.labelIds()))
                 .build();
 
         cardRepository.save(card);
@@ -49,6 +52,9 @@ public class CardService {
         Card card = getOwnedCard(cardId, user);
         card.setTitle(request.title());
         card.setDescription(request.description());
+        if (request.labelIds() != null) {
+            card.setLabels(labelService.resolveBoardLabels(card.getBoardList().getBoard(), request.labelIds()));
+        }
         cardRepository.save(card);
         return toResponse(card);
     }
@@ -132,6 +138,6 @@ public class CardService {
     }
 
     private CardResponse toResponse(Card card) {
-        return new CardResponse(card.getId(), card.getTitle(), card.getDescription(), card.getPosition());
+        return CardResponse.from(card);
     }
 }

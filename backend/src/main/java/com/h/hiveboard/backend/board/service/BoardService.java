@@ -2,6 +2,8 @@ package com.h.hiveboard.backend.board.service;
 
 import com.h.hiveboard.backend.board.dto.BoardDtos.CreateBoardRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateBoardRequest;
+import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateLabelsTitleRequest;
+import com.h.hiveboard.backend.board.dto.BoardDtos.LabelsTitleResponse;
 import com.h.hiveboard.backend.board.dto.BoardDtos.BoardSummaryResponse;
 import com.h.hiveboard.backend.board.dto.BoardDetailsDtos.BoardDetailResponse;
 import com.h.hiveboard.backend.board.dto.BoardDetailsDtos.ListResponse;
@@ -13,6 +15,7 @@ import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.board.repository.BoardRepository;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import com.h.hiveboard.backend.exception.ForbiddenOperationException;
+import com.h.hiveboard.backend.label.dto.LabelDtos.LabelResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class BoardService {
+
+    public static final String DEFAULT_LABELS_TITLE = "Labels";
 
     private final BoardRepository boardRepository;
 
@@ -54,7 +59,20 @@ public class BoardService {
                 .map(this::toListResponse)
                 .toList();
 
-        return new BoardDetailResponse(board.getId(), board.getName(), board.getDescription(), lists);
+        List<LabelResponse> labels = board.getLabels().stream()
+                .map(LabelResponse::from)
+                .toList();
+
+        return new BoardDetailResponse(board.getId(), board.getName(), board.getDescription(),
+                labelsTitleOf(board), labels, lists);
+    }
+
+    @Transactional
+    public LabelsTitleResponse updateLabelsTitle(UUID boardId, User user, UpdateLabelsTitleRequest request) {
+        Board board = getOwnedBoard(boardId, user);
+        board.setLabelsTitle(request.labelsTitle().trim());
+        boardRepository.save(board);
+        return new LabelsTitleResponse(labelsTitleOf(board));
     }
 
     @Transactional
@@ -84,6 +102,10 @@ public class BoardService {
         return board;
     }
 
+    private String labelsTitleOf(Board board) {
+        return board.getLabelsTitle() != null ? board.getLabelsTitle() : DEFAULT_LABELS_TITLE;
+    }
+
     private BoardSummaryResponse toSummary(Board board) {
         return new BoardSummaryResponse(board.getId(), board.getName(), board.getDescription(),
                 board.getOwner().getFullName(), board.getCreatedAt());
@@ -91,7 +113,7 @@ public class BoardService {
 
     private ListResponse toListResponse(BoardList list) {
         List<CardResponse> cards = list.getCards().stream()
-                .map(c -> new CardResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPosition()))
+                .map(CardResponse::from)
                 .toList();
         return new ListResponse(list.getId(), list.getName(), list.getPosition(), cards);
     }

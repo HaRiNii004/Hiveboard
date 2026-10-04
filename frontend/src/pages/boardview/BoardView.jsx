@@ -3,8 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, AlignLeft } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
+import LabelSelect from '../../components/LabelSelect/LabelSelect';
+import LabelChip from '../../components/LabelSelect/LabelChip';
 import CreateItemPopup from './CreateItemPopup';
-import { getBoardDetail } from '../../api/boards';
+import { getBoardDetail, updateLabelsTitle } from '../../api/boards';
+import { createLabel, updateLabel, deleteLabel } from '../../api/labels';
 import { createList, updateList } from '../../api/lists';
 import { createCard, updateCard } from '../../api/cards';
 import { getColorScheme } from '../../utils/boardColors';
@@ -15,10 +18,13 @@ const LIST_FIELDS = [
   { name: 'name', label: 'List name', required: true, placeholder: 'e.g. To Do', maxLength: 100 }
 ];
 
-const CARD_FIELDS = [
-  { name: 'title', label: 'Card title', required: true, placeholder: 'e.g. Design the login page', maxLength: 150 },
-  { name: 'description', label: 'Description', placeholder: 'Add more details...', maxLength: 2000, multiline: true }
-];
+const CARD_TITLE_FIELD = {
+  name: 'title', label: 'Card title', required: true, placeholder: 'e.g. Design the login page', maxLength: 150
+};
+
+const CARD_DESCRIPTION_FIELD = {
+  name: 'description', label: 'Description', placeholder: 'Add more details...', maxLength: 2000, multiline: true
+};
 
 // Resolves (never rejects) with the board or an error message to show
 const fetchBoard = (boardId) => {
@@ -91,16 +97,16 @@ export default function BoardView() {
     setPopup(null);
   };
 
-  const handleCreateCard = async ({ title, description }) => {
+  const handleCreateCard = async ({ title, description, labelIds }) => {
     const { listId } = popup;
-    const response = await createCard(listId, title, description);
+    const response = await createCard(listId, title, description, labelIds);
     setList(listId, list => ({ ...list, cards: [...list.cards, response.data] }));
     setPopup(null);
   };
 
-  const handleUpdateCard = async ({ title, description }) => {
+  const handleUpdateCard = async ({ title, description, labelIds }) => {
     const { listId, card } = popup;
-    const response = await updateCard(card.id, title, description);
+    const response = await updateCard(card.id, title, description, labelIds);
     setList(listId, list => ({
       ...list,
       cards: list.cards.map(c => (c.id === card.id ? response.data : c))
@@ -108,13 +114,80 @@ export default function BoardView() {
     setPopup(null);
   };
 
+  // --- Label options (board-level, saved immediately from the label picker) ---
+  const handleCreateLabel = async (name, color) => {
+    const response = await createLabel(boardId, name, color);
+    setBoard(b => ({ ...b, labels: [...b.labels, response.data] }));
+    return response.data;
+  };
+
+  const handleUpdateLabel = async (labelId, { name, color }) => {
+    const response = await updateLabel(labelId, name, color);
+    setBoard(b => ({
+      ...b,
+      labels: b.labels.map(label => (label.id === labelId ? response.data : label))
+    }));
+    return response.data;
+  };
+
+  const handleDeleteLabel = async (labelId) => {
+    await deleteLabel(labelId);
+    // The backend also removes it from every card, so mirror that here
+    setBoard(b => ({
+      ...b,
+      labels: b.labels.filter(label => label.id !== labelId),
+      lists: b.lists.map(list => ({
+        ...list,
+        cards: list.cards.map(card => ({
+          ...card,
+          labels: card.labels.filter(label => label.id !== labelId)
+        }))
+      }))
+    }));
+  };
+
+  const handleRenameLabelsTitle = async (labelsTitle) => {
+    const response = await updateLabelsTitle(boardId, labelsTitle);
+    setBoard(b => ({ ...b, labelsTitle: response.data.labelsTitle }));
+  };
+
+  // Cards show the board's current version of each label, so renames and
+  // colour changes appear everywhere straight away
+  const labelsById = board ? Object.fromEntries(board.labels.map(label => [label.id, label])) : {};
+  const cardLabels = (card) => card.labels.map(label => labelsById[label.id]).filter(Boolean);
+
+  const cardFields = board
+    ? [
+        CARD_TITLE_FIELD,
+        {
+          name: 'labelIds',
+          type: 'custom',
+          defaultValue: [],
+          render: ({ value, onChange, disabled }) => (
+            <LabelSelect
+              title={board.labelsTitle}
+              onRenameTitle={handleRenameLabelsTitle}
+              options={board.labels}
+              selectedIds={value}
+              onChange={onChange}
+              onCreateOption={handleCreateLabel}
+              onUpdateOption={handleUpdateLabel}
+              onDeleteOption={handleDeleteLabel}
+              disabled={disabled}
+            />
+          )
+        },
+        CARD_DESCRIPTION_FIELD
+      ]
+    : [];
+
   const scheme = getColorScheme(boardId);
 
   return (
     <div className="boardview-page">
       <Sidebar />
       <div className="boardview-main-content">
-        <Topbar />
+        <Topbar showSearch={false} />
 
         <main
           className="boardview-content-panel"
@@ -170,7 +243,16 @@ export default function BoardView() {
                     <div className="board-list-cards">
                       {list.cards.map(card => (
                         <article key={card.id} className="list-card">
-                          <h3 className="list-card-title">{card.title}</h3>
+                          <div className="list-card-body">
+                            <h3 className="list-card-title">{card.title}</h3>
+                            {cardLabels(card).length > 0 && (
+                              <div className="list-card-labels">
+                                {cardLabels(card).map(label => (
+                                  <LabelChip key={label.id} label={label} size="sm" />
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           <div className="list-card-actions">
                             {card.description && (
                               <span className="list-card-has-description" title="This card has a description">
@@ -240,7 +322,7 @@ export default function BoardView() {
         <CreateItemPopup
           heading="Add a card"
           subheading={`New card in "${popup.listName}".`}
-          fields={CARD_FIELDS}
+          fields={cardFields}
           submitLabel="Add Card"
           onSubmit={handleCreateCard}
           onClose={() => setPopup(null)}
@@ -251,8 +333,12 @@ export default function BoardView() {
         <CreateItemPopup
           heading="Edit card"
           subheading={`Card in "${popup.listName}".`}
-          fields={CARD_FIELDS}
-          initialValues={{ title: popup.card.title, description: popup.card.description }}
+          fields={cardFields}
+          initialValues={{
+            title: popup.card.title,
+            description: popup.card.description,
+            labelIds: cardLabels(popup.card).map(label => label.id)
+          }}
           submitLabel="Save Changes"
           submittingLabel="Saving..."
           onSubmit={handleUpdateCard}

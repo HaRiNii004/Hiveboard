@@ -4,6 +4,7 @@ import com.h.hiveboard.backend.exception.ForbiddenOperationException;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -34,6 +35,13 @@ public class GlobalExceptionHandler {
             errors.put(error.getField(), error.getDefaultMessage());
         }
         return ResponseEntity.badRequest().body(errors);
+    }
+
+    // Malformed JSON or a value that doesn't fit the field (e.g. an unknown label colour).
+    // Without this Spring forwards to /error, which Spring Security blocks with an empty 403.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleUnreadableBody() {
+        return ResponseEntity.badRequest().body(Map.of("error", "Request body is malformed or has an invalid value"));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)

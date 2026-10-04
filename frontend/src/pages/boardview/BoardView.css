@@ -196,9 +196,21 @@
   box-shadow: var(--shadow-md);
 }
 
-.list-card-title {
+.list-card-body {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.list-card-title {
   padding-top: 2px;
   font-size: 14px;
   font-weight: 600;

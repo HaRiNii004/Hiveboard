@@ -1,6 +1,7 @@
 package com.h.hiveboard.backend.card.entity;
 
 import com.h.hiveboard.backend.boardlist.entity.BoardList;
+import com.h.hiveboard.backend.label.entity.Label;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -37,6 +40,14 @@ public class Card {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "list_id", nullable = false)
     private BoardList boardList;
+
+    // Selected options of the board's labels field (multi-select).
+    @ManyToMany
+    @JoinTable(name = "card_labels",
+            joinColumns = @JoinColumn(name = "card_id"),
+            inverseJoinColumns = @JoinColumn(name = "label_id"))
+    @Builder.Default
+    private Set<Label> labels = new HashSet<>();
 
     @CreationTimestamp
     private Instant createdAt;

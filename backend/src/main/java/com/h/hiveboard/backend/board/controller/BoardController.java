@@ -2,6 +2,8 @@ package com.h.hiveboard.backend.board.controller;
 
 import com.h.hiveboard.backend.board.dto.BoardDtos.CreateBoardRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateBoardRequest;
+import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateLabelsTitleRequest;
+import com.h.hiveboard.backend.board.dto.BoardDtos.LabelsTitleResponse;
 import com.h.hiveboard.backend.board.dto.BoardDtos.BoardSummaryResponse;
 import com.h.hiveboard.backend.board.dto.BoardDetailsDtos.BoardDetailResponse;
 import com.h.hiveboard.backend.auth.entity.User;
@@ -44,6 +46,14 @@ public class BoardController {
                                                        @PathVariable UUID boardId,
                                                        @Valid @RequestBody UpdateBoardRequest request) {
         return ResponseEntity.ok(boardService.updateBoard(boardId, user, request));
+    }
+
+    // Renames the board's labels field; the options themselves live under /labels.
+    @PatchMapping("/{boardId}/labels-title")
+    public ResponseEntity<LabelsTitleResponse> updateLabelsTitle(@AuthenticationPrincipal User user,
+                                                                 @PathVariable UUID boardId,
+                                                                 @Valid @RequestBody UpdateLabelsTitleRequest request) {
+        return ResponseEntity.ok(boardService.updateLabelsTitle(boardId, user, request));
     }
 
     @DeleteMapping("/{boardId}")

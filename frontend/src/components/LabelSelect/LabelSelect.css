@@ -1,0 +1,278 @@
+.label-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Field name row */
+.label-select-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+}
+
+.label-select-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-brand);
+}
+
+.label-select-optional {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.label-select-title-input {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-brand);
+  border: 1px solid var(--color-border-focus);
+  border-radius: 6px;
+  padding: 2px 6px;
+  outline: none;
+  width: 160px;
+}
+
+.label-select-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.label-select-icon-btn:hover,
+.label-select-icon-btn:focus-visible {
+  color: var(--color-primary);
+  background-color: rgba(242, 143, 15, 0.1);
+}
+
+.label-select-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Chips + input */
+.label-select-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 10px;
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  cursor: text;
+  transition: var(--transition-fast);
+}
+
+.label-select-control.open {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(242, 143, 15, 0.12);
+}
+
+.label-select-control.disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.label-select-input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text-body);
+  padding: 2px 0;
+}
+
+.label-select-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Options panel (inline, so it is never clipped by the popup) */
+.label-select-panel {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.label-select-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 4px 8px 6px;
+}
+
+.label-select-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 2px 4px 2px 0;
+}
+
+.label-select-row.active {
+  background-color: var(--color-primary-light);
+}
+
+.label-select-option {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 5px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.label-select-check {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.label-select-create {
+  width: 100%;
+  gap: 8px;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.label-select-create-text {
+  font-size: 13px;
+  color: var(--color-text-body);
+}
+
+/* ⋯ menu for one option */
+.label-option-menu {
+  margin: 4px 4px 8px 12px;
+  padding: 10px;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  background-color: #fffdf9;
+}
+
+.label-option-name {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-body);
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+.label-option-name:focus {
+  border-color: var(--color-border-focus);
+}
+
+.label-option-delete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-body);
+  cursor: pointer;
+  text-align: left;
+}
+
+.label-option-delete:hover,
+.label-option-delete.confirm {
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.08);
+}
+
+.label-option-colors-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 8px 8px 4px;
+}
+
+.label-option-colors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.label-option-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-body);
+  cursor: pointer;
+  text-align: left;
+}
+
+.label-option-color:hover,
+.label-option-color:focus-visible {
+  background-color: var(--color-primary-light);
+}
+
+.label-option-color svg {
+  margin-left: auto;
+  color: var(--color-primary);
+}
+
+.label-option-swatch {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.label-option-color-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-select-error {
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+@media (max-width: 480px) {
+  .label-option-colors {
+    grid-template-columns: 1fr;
+  }
+}

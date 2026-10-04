@@ -1,0 +1,46 @@
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.label-chip.md {
+  font-size: 13px;
+  padding: 1px 6px;
+}
+
+.label-chip.sm {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.label-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.label-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 1px;
+  margin-right: -3px;
+  border-radius: 3px;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.label-chip-remove:hover,
+.label-chip-remove:focus-visible {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.08);
+}
