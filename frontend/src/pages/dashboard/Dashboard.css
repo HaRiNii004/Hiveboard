@@ -50,6 +50,40 @@
   font-weight: 700;
   color: var(--color-text-brand);
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Bee next to the welcome name */
+.welcome-bee {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  animation: welcomeBeeHover 3s ease-in-out infinite;
+}
+
+.welcome-bee-wings {
+  transform-origin: 26px 22px;
+  animation: welcomeBeeFlap 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes welcomeBeeHover {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-4px) rotate(4deg); }
+}
+
+@keyframes welcomeBeeFlap {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-bee,
+  .welcome-bee-wings {
+    animation: none;
+  }
 }
 
 .welcome-subtitle {
@@ -231,337 +265,93 @@
   color: var(--color-text-brand);
 }
 
-/* Real Board Visual Preview Panel */
+/* Real Board Cards: colour scheme comes from --board-bg / --board-accent / --board-text */
+.board-card.real-board {
+  border-top: 5px solid var(--board-accent, var(--color-primary));
+}
+
+.board-card.real-board:hover {
+  border-color: var(--board-accent, var(--color-primary));
+}
+
+/* Name & description preview */
 .board-card-preview {
-  height: 140px;
-  background: linear-gradient(135deg, #fffbee, #fff2e0);
-  border-bottom: 1px solid #f7e6d2;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--board-bg, var(--color-primary-light));
+  padding: 20px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  position: relative;
+  flex-direction: column;
+  gap: 8px;
   overflow: hidden;
-}
-
-/* Tiny visual previews matching mockup designs */
-/* 1. Roadmap Kanban Preview */
-.preview-roadmap {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  height: 100%;
-}
-
-.preview-column {
-  flex: 1;
-  background-color: rgba(255, 255, 255, 0.55);
-  border-radius: 6px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border: 1px solid rgba(242, 143, 15, 0.08);
-}
-
-.col-bar {
-  height: 6px;
-  background-color: #ffd8a1;
-  border-radius: 3px;
-  width: 60%;
-  margin-bottom: 2px;
-}
-
-.col-card {
-  height: 24px;
-  background-color: #ffffff;
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(60, 36, 21, 0.04);
-  border-left: 3px solid var(--color-primary);
-}
-
-.col-card.short {
-  height: 14px;
-}
-
-.col-card.medium {
-  height: 38px;
-}
-
-/* 2. Marketing Analytics Preview */
-.preview-marketing {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  height: 100%;
-  padding: 0 12px;
-}
-
-.preview-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.preview-line {
-  height: 6px;
-  background-color: #ffd8a1;
-  border-radius: 3px;
-  width: 80%;
-}
-
-.preview-line.wide {
-  width: 95%;
-  height: 8px;
-  background-color: var(--color-primary);
-  opacity: 0.8;
-}
-
-.preview-line.medium { width: 60%; }
-.preview-line.short { width: 40%; }
-
-.preview-pie {
-  width: 58px;
-  height: 58px;
-  transform: rotate(-90deg);
-}
-
-/* 3. Calendar Grid Preview */
-.preview-calendar {
-  width: 100%;
-  height: 100%;
-  background-color: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #fce2c2;
-  box-shadow: 0 2px 8px rgba(60, 36, 21, 0.03);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.calendar-header {
-  height: 18px;
-  background-color: #fde5c3;
-  border-bottom: 1px solid #fcd299;
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-}
-
-.cal-header-bar {
-  width: 36px;
-  height: 5px;
-  background-color: #d67c00;
-  border-radius: 2px;
-  opacity: 0.6;
-}
-
-.calendar-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-  padding: 6px;
-}
-
-.calendar-cell {
-  background-color: #fffaf0;
-  border-radius: 2px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.calendar-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-}
-
-.calendar-dot.yellow { background-color: #ffb821; }
-.calendar-dot.orange { background-color: #f58e14; }
-
-/* 4. Product Sticky Notes Preview */
-.preview-ideas {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  width: 100%;
-  height: 100%;
-}
-
-.idea-note {
-  background-color: #fff9db;
-  border: 1px solid #f5ecb3;
-  border-radius: 4px;
-  box-shadow: 1px 1px 3px rgba(60, 36, 21, 0.04);
-}
-
-.idea-note:nth-child(even) {
-  background-color: #fff5e6;
-  border-color: #ffdca3;
-}
-
-/* 5. Design Mockup Preview */
-.preview-design {
-  width: 100%;
-  height: 100%;
-}
-
-.design-layout {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  height: 100%;
-}
-
-.design-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  justify-content: center;
-}
-
-.design-bar {
-  height: 6px;
-  background-color: #ffd8a1;
-  border-radius: 3px;
-  width: 90%;
-}
-
-.design-bar.short { width: 50%; }
-
-.design-right {
-  flex: 1.5;
-  display: flex;
-  align-items: center;
-}
-
-.design-artwork {
-  width: 100%;
-  height: auto;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(242, 143, 15, 0.12);
-}
-
-/* 6. Checklist Tasks Preview */
-.preview-tasks {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  justify-content: center;
-}
-
-.task-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.task-checkbox {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid #f28f0f;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: bold;
-  color: #f28f0f;
-  background-color: #fffbf5;
-}
-
-.task-line {
-  height: 6px;
-  background-color: #ffd8a1;
-  border-radius: 3px;
-  width: 75%;
-}
-
-.task-line.short { width: 45%; }
-
-/* 7. OKRs Targets Preview */
-.preview-okrs {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  height: 100%;
-}
-
-.okrs-left {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.okrs-target {
-  width: 64px;
-  height: 64px;
-}
-
-.okrs-right {
-  flex: 1.2;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  justify-content: center;
-}
-
-.okr-bar {
-  height: 6px;
-  background-color: #ffd8a1;
-  border-radius: 3px;
-  width: 85%;
-}
-
-.okr-bar.short { width: 40%; }
-
-/* Board Card Info Section */
-.board-card-info {
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.board-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.board-emoji {
-  font-size: 16px;
 }
 
 .board-card-title {
-  font-size: 15px;
+  font-family: var(--font-brand);
+  font-size: 18px;
   font-weight: 700;
-  color: var(--color-text-brand);
+  color: var(--board-text, var(--color-text-brand));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+}
+
+.board-card-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--board-text, var(--color-text-body));
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.board-card-description.empty {
+  font-style: italic;
+  opacity: 0.55;
 }
 
 .board-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 10px 16px 10px 20px;
+  border-top: 1px solid #f7e6d2;
+  background-color: #ffffff;
 }
 
-.board-updated {
+/* Created by / created date */
+.board-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.board-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   color: var(--color-text-muted);
+  min-width: 0;
+}
+
+.board-meta-item svg {
+  flex-shrink: 0;
+  color: var(--board-accent, var(--color-primary));
+}
+
+.board-meta-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-meta-item:first-child {
+  flex: 0 1 auto;
 }
 
 .star-btn {
@@ -582,37 +372,107 @@
   background-color: rgba(242, 143, 15, 0.08);
 }
 
+/* Loading / error / empty messages */
+.boards-status {
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.boards-status.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--color-error);
+}
+
+.boards-retry-btn {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-input);
+  color: var(--color-text-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.boards-retry-btn:hover {
+  background-color: var(--color-primary-light);
+}
+
 /* List View Layout override */
 .boards-grid.list-view {
   grid-template-columns: 1fr;
 }
 
 .boards-grid.list-view .board-card {
-  height: 72px;
+  height: auto;
+  min-height: 72px;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
+}
+
+.boards-grid.list-view .board-card.real-board {
+  border-top-width: 1px;
+  border-left: 5px solid var(--board-accent, var(--color-primary));
+}
+
+.boards-grid.list-view .board-card.create-card {
+  padding: 12px;
+}
+
+.boards-grid.list-view .create-card-content {
+  flex-direction: row;
+}
+
+.boards-grid.list-view .hexagon-btn {
+  width: 44px;
+  height: 44px;
 }
 
 .boards-grid.list-view .board-card-preview {
-  display: none;
-}
-
-.boards-grid.list-view .board-card-info {
-  flex: 1;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
+  gap: 24px;
+  padding: 14px 24px;
 }
 
-.boards-grid.list-view .board-card-header {
-  flex: 1;
+.boards-grid.list-view .board-card-title {
+  flex: 0 0 220px;
+  font-size: 15px;
+}
+
+.boards-grid.list-view .board-card-description {
+  -webkit-line-clamp: 1;
 }
 
 .boards-grid.list-view .board-card-footer {
-  width: 200px;
+  border-top: none;
+  border-left: 1px solid #f7e6d2;
+  width: 320px;
   justify-content: flex-end;
   gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .boards-grid.list-view .board-card-preview {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .boards-grid.list-view .board-card-title {
+    flex: none;
+    max-width: 100%;
+  }
+
+  .boards-grid.list-view .board-card-footer {
+    width: auto;
+  }
 }
 
 /* Bottom Loop decoration styling */

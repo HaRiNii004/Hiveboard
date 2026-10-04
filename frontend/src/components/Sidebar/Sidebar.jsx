@@ -8,11 +8,9 @@ import {
   Plus, 
   ChevronRight, 
   Settings, 
-  LogOut,
-  Crown
+  LogOut
 } from 'lucide-react';
 import logo from '../../assets/logo.svg';
-import ideabee from '../../assets/ideabee.png';
 import './Sidebar.css';
 
 export default function Sidebar() {
@@ -73,24 +71,6 @@ export default function Sidebar() {
           </div>
           <span className="workspace-label">My Workspace</span>
           <ChevronRight size={16} className="workspace-chevron" />
-        </div>
-      </div>
-
-      {/* Premium Card with flight path & bee */}
-      <div className="premium-card">
-        {/* Decorative Bee path */}
-        <svg className="premium-bee-path" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 10 40 C 30 20, 50 10, 80 20" stroke="#f28f0f" strokeWidth="1.5" strokeDasharray="3 3" strokeLinecap="round" />
-        </svg>
-        <img src={ideabee} alt="Flying Bee" className="premium-bee" />
-
-        <div className="premium-content">
-          <h3 className="premium-title">
-            <Crown size={16} className="premium-title-icon" />
-            Go Premium
-          </h3>
-          <p className="premium-text">Unlock unlimited boards, advanced views and more.</p>
-          <button className="premium-btn">Upgrade Now</button>
         </div>
       </div>
 

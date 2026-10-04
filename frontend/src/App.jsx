@@ -4,6 +4,7 @@ import './styles/variables.css';
 import Login from './pages/Login/Login';
 import Signup from './pages/Signup/Signup';
 import Dashboard from './pages/dashboard/Dashboard';
+import BoardView from './pages/boardview/BoardView';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/boards/:boardId" element={<BoardView />} />
       </Routes>
     </BrowserRouter>
   );

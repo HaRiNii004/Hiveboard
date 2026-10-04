@@ -191,7 +191,6 @@ export default function HiveVisual() {
           })}
 
           {/* Place static bees matching the mockup locations and rotations */}
-          <Bee x={60} y={80} rotate={-120} type="idea" size={75} />
           <Bee x={380} y={420} rotate={-15} type="read" size={75} />
           <Bee x={460} y={690} rotate={-35} type="chainsaw" size={75} />
 

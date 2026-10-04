@@ -1,0 +1,299 @@
+.boardview-page {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--color-bg-main), var(--color-bg-end));
+  position: relative;
+  overflow-x: hidden;
+}
+
+.boardview-main-content {
+  flex: 1;
+  min-width: 0;
+  margin-left: 260px; /* Sidebar offset */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Colour scheme comes from --board-bg / --board-accent / --board-text */
+.boardview-content-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 40px 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.boardview-back-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px 6px 0;
+  margin-bottom: 16px;
+  transition: var(--transition-fast);
+}
+
+.boardview-back-btn:hover {
+  color: var(--board-accent, var(--color-primary));
+}
+
+/* Board header */
+.boardview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  background-color: var(--board-bg, var(--color-primary-light));
+  border: 1px solid #f7e6d2;
+  border-left: 6px solid var(--board-accent, var(--color-primary));
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.boardview-header-text {
+  min-width: 0;
+}
+
+.boardview-title {
+  font-family: var(--font-brand);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--board-text, var(--color-text-brand));
+  overflow-wrap: anywhere;
+}
+
+.boardview-description {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--board-text, var(--color-text-body));
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
+.boardview-create-list-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-button);
+  transition: var(--transition-fast);
+}
+
+.boardview-create-list-btn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* Lists row: scrolls sideways when there are many lists */
+.boardview-lists {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.board-list {
+  flex: 0 0 280px;
+  max-height: calc(100vh - 280px);
+  display: flex;
+  flex-direction: column;
+  background-color: #fffaf3;
+  border: 1px solid #f7e6d2;
+  border-top: 4px solid var(--board-accent, var(--color-primary));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.board-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 10px;
+}
+
+.board-list-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-list-count {
+  flex-shrink: 0;
+  min-width: 24px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--board-text, var(--color-text-body));
+  background-color: var(--board-bg, var(--color-primary-light));
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.board-list-cards {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 12px 8px;
+}
+
+.board-list-empty {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* Card inside a list */
+.list-card {
+  background-color: #ffffff;
+  border: 1px solid #f7e6d2;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.list-card:hover {
+  border-color: var(--board-accent, var(--color-primary));
+  box-shadow: var(--shadow-md);
+}
+
+.list-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-brand);
+  overflow-wrap: anywhere;
+}
+
+.list-card-description {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.board-list-add-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 12px 12px;
+  padding: 9px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.board-list-add-card-btn:hover {
+  background-color: var(--board-bg, var(--color-primary-light));
+  color: var(--board-text, var(--color-text-brand));
+}
+
+/* "Create a list" column at the end of the row */
+.board-list-create {
+  flex: 0 0 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 72px;
+  background-color: rgba(254, 245, 230, 0.4);
+  border: 2px dashed #fcd299;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-brand);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.board-list-create:hover {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background-color: rgba(254, 245, 230, 0.7);
+}
+
+/* Loading / error messages */
+.boardview-status {
+  margin-top: 40px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.boardview-status.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--color-error);
+}
+
+.boardview-retry-btn {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-input);
+  color: var(--color-text-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.boardview-retry-btn:hover {
+  background-color: var(--color-primary-light);
+}
+
+@media (max-width: 640px) {
+  .boardview-content-panel {
+    padding: 16px;
+  }
+
+  .boardview-header {
+    flex-direction: column;
+  }
+
+  .board-list,
+  .board-list-create {
+    flex-basis: 85vw;
+  }
+}

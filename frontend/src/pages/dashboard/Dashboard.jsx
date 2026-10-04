@@ -1,67 +1,55 @@
-import React, { useState } from 'react';
-import { Star, ChevronDown, Grid, List as ListIcon, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Star, ChevronDown, Grid, List as ListIcon, Plus, User, Calendar } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import Bee from '../../components/Bee/Bee';
+import CreatePopup from './CreatePopup/CreatePopup';
+import { getBoards } from '../../api/boards';
+import { getColorScheme } from '../../utils/boardColors';
 import './Dashboard.css';
 
-// Mock boards data matching the provided screenshot
-const INITIAL_BOARDS = [
-  {
-    id: '1',
-    title: 'Project Roadmap',
-    updated: 'Updated 2h ago',
-    type: 'roadmap',
-    starred: false
-  },
-  {
-    id: '2',
-    title: 'Marketing Plan',
-    updated: 'Updated yesterday',
-    type: 'marketing',
-    starred: false
-  },
-  {
-    id: '3',
-    title: 'Content Calendar',
-    updated: 'Updated 2d ago',
-    type: 'calendar',
-    starred: false
-  },
-  {
-    id: '4',
-    title: 'Product Ideas',
-    updated: 'Updated 3d ago',
-    type: 'ideas',
-    starred: false
-  },
-  {
-    id: '5',
-    title: 'Design Inspiration',
-    updated: 'Updated 5d ago',
-    type: 'design',
-    starred: false
-  },
-  {
-    id: '6',
-    title: 'Personal Tasks',
-    updated: 'Updated 1w ago',
-    type: 'tasks',
-    starred: false
-  },
-  {
-    id: '7',
-    title: 'Team OKRs',
-    updated: 'Updated 1w ago',
-    type: 'okrs',
-    starred: false
-  }
-];
+const formatCreatedDate = (createdAt) => {
+  if (!createdAt) return '';
+  return new Date(createdAt).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
+// BoardSummaryResponse -> card data
+const toBoard = (summary) => ({
+  id: summary.id,
+  name: summary.name,
+  description: summary.description,
+  createdBy: summary.createdBy,
+  createdAt: summary.createdAt,
+  starred: false
+});
+
+// Resolves (never rejects) with the boards or an error message to show
+const fetchBoards = () => {
+  return getBoards()
+    .then(response => ({ boards: response.data.map(toBoard), error: '' }))
+    .catch(err => {
+      console.error(err);
+      const status = err.response && err.response.status;
+      const error = status === 401 || status === 403
+        ? 'Your session has expired. Please log in again.'
+        : 'Could not load your boards. Please try again.';
+      return { boards: [], error };
+    });
+};
 
 export default function Dashboard() {
-  const [boards, setBoards] = useState(INITIAL_BOARDS);
-  const [sortBy, setSortBy] = useState('Last opened');
+  const navigate = useNavigate();
+  const [boards, setBoards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [sortBy] = useState('Last opened');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [showCreatePopup, setShowCreatePopup] = useState(false);
 
   const storedUser = localStorage.getItem('user');
   let userName = 'Harini Selvaraj';
@@ -78,151 +66,36 @@ export default function Dashboard() {
 
   const firstName = userName.split(' ')[0];
 
+  const applyResult = (result) => {
+    setBoards(result.boards);
+    setError(result.error);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchBoards().then(result => {
+      if (!cancelled) applyResult(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleRetry = () => {
+    setLoading(true);
+    fetchBoards().then(applyResult);
+  };
+
   const handleToggleStar = (boardId, e) => {
     e.stopPropagation();
     setBoards(boards.map(b => b.id === boardId ? { ...b, starred: !b.starred } : b));
   };
 
-  // Render a tiny visual preview inside each card to match mockup layouts
-  const renderBoardPreview = (type) => {
-    switch (type) {
-      case 'roadmap':
-        return (
-          <div className="preview-roadmap">
-            <div className="preview-column">
-              <span className="col-bar"></span>
-              <span className="col-card"></span>
-              <span className="col-card short"></span>
-            </div>
-            <div className="preview-column">
-              <span className="col-bar"></span>
-              <span className="col-card medium"></span>
-            </div>
-            <div className="preview-column">
-              <span className="col-bar"></span>
-              <span className="col-card"></span>
-              <span className="col-card short"></span>
-            </div>
-          </div>
-        );
-      case 'marketing':
-        return (
-          <div className="preview-marketing">
-            <div className="preview-lines">
-              <span className="preview-line wide"></span>
-              <span className="preview-line"></span>
-              <span className="preview-line medium"></span>
-              <span className="preview-line short"></span>
-            </div>
-            <svg className="preview-pie" viewBox="0 0 36 36">
-              <path className="pie-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ffe0b2" strokeWidth="6" />
-              <path className="pie-slice" strokeDasharray="35, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="#f28f0f" strokeWidth="6" />
-            </svg>
-          </div>
-        );
-      case 'calendar':
-        return (
-          <div className="preview-calendar">
-            <div className="calendar-header">
-              <span className="cal-header-bar"></span>
-            </div>
-            <div className="calendar-grid">
-              {Array.from({ length: 28 }).map((_, i) => (
-                <div key={i} className="calendar-cell">
-                  {i === 11 && <span className="calendar-dot yellow"></span>}
-                  {i === 17 && <span className="calendar-dot orange"></span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      case 'ideas':
-        return (
-          <div className="preview-ideas">
-            <div className="idea-note"></div>
-            <div className="idea-note"></div>
-            <div className="idea-note"></div>
-            <div className="idea-note"></div>
-          </div>
-        );
-      case 'design':
-        return (
-          <div className="preview-design">
-            <div className="design-layout">
-              <div className="design-left">
-                <span className="design-bar"></span>
-                <span className="design-bar short"></span>
-              </div>
-              <div className="design-right">
-                <svg className="design-artwork" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="40" height="30" rx="4" fill="#fff5e6" />
-                  <circle cx="12" cy="10" r="4" fill="#ffd080" />
-                  <path d="M4 26 L16 14 L28 26 Z" fill="#ffb821" opacity="0.8" />
-                  <path d="M14 26 L26 12 L38 26 Z" fill="#f58e14" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        );
-      case 'tasks':
-        return (
-          <div className="preview-tasks">
-            <div className="task-row">
-              <span className="task-checkbox checked">✓</span>
-              <span className="task-line"></span>
-            </div>
-            <div className="task-row">
-              <span className="task-checkbox checked">✓</span>
-              <span className="task-line"></span>
-            </div>
-            <div className="task-row">
-              <span className="task-checkbox checked">✓</span>
-              <span className="task-line short"></span>
-            </div>
-          </div>
-        );
-      case 'okrs':
-        return (
-          <div className="preview-okrs">
-            <div className="okrs-left">
-              <svg className="okrs-target" viewBox="0 0 36 36" fill="none">
-                <circle cx="18" cy="18" r="16" stroke="#ffd79e" strokeWidth="2.5" />
-                <circle cx="18" cy="18" r="11" stroke="#fca93b" strokeWidth="2.5" />
-                <circle cx="18" cy="18" r="6" stroke="#f28f0f" strokeWidth="2.5" fill="#f28f0f" />
-                <line x1="18" y1="18" x2="30" y2="6" stroke="#3c2415" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="okrs-right">
-              <span className="okr-bar"></span>
-              <span className="okr-bar"></span>
-              <span className="okr-bar short"></span>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const getBoardIcon = (type) => {
-    switch (type) {
-      case 'roadmap':
-        return <span className="board-emoji">📁</span>;
-      case 'marketing':
-        return <span className="board-emoji">📢</span>;
-      case 'calendar':
-        return <span className="board-emoji">📅</span>;
-      case 'ideas':
-        return <span className="board-emoji">💡</span>;
-      case 'design':
-        return <span className="board-emoji">🎨</span>;
-      case 'tasks':
-        return <span className="board-emoji">✓</span>;
-      case 'okrs':
-        return <span className="board-emoji">🎯</span>;
-      default:
-        return <span className="board-emoji">📋</span>;
-    }
+  // Add the board returned by POST /api/boards to the top of the grid
+  const handleBoardCreated = (created) => {
+    setBoards(prev => [toBoard(created), ...prev]);
+    setShowCreatePopup(false);
   };
 
   return (
@@ -253,7 +126,38 @@ export default function Dashboard() {
 
           {/* Welcome greeting */}
           <div className="welcome-banner">
-            <h1 className="welcome-title">Welcome back, {firstName}! 👋</h1>
+            <h1 className="welcome-title">
+              Welcome back, {firstName}!
+              <svg className="welcome-bee" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                  <clipPath id="welcome-bee-body">
+                    <ellipse cx="26" cy="29" rx="13" ry="10" />
+                  </clipPath>
+                </defs>
+                {/* Wings */}
+                <g className="welcome-bee-wings">
+                  <ellipse cx="22" cy="15" rx="6" ry="9" transform="rotate(-25 22 15)" fill="#ffffff" stroke="#e8c9a0" strokeWidth="1.5" opacity="0.95" />
+                  <ellipse cx="31" cy="15" rx="5" ry="8" transform="rotate(20 31 15)" fill="#ffffff" stroke="#e8c9a0" strokeWidth="1.5" opacity="0.95" />
+                </g>
+                {/* Body with stripes */}
+                <ellipse cx="26" cy="29" rx="13" ry="10" fill="#ffc233" />
+                <g clipPath="url(#welcome-bee-body)" fill="#3c2415">
+                  <rect x="22" y="17" width="4" height="24" />
+                  <rect x="30" y="17" width="4" height="24" />
+                </g>
+                <ellipse cx="26" cy="29" rx="13" ry="10" stroke="#3c2415" strokeWidth="1.5" />
+                {/* Stinger */}
+                <path d="M39 29 L44 27.5 L39 31 Z" fill="#3c2415" />
+                {/* Head, eye, smile & antennae */}
+                <circle cx="12" cy="28" r="6.5" fill="#3c2415" />
+                <circle cx="10" cy="26.5" r="1.6" fill="#ffffff" />
+                <path d="M8.5 30.5 Q10.5 32 12.5 30.5" stroke="#ffc233" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M11 22 Q8 16 5 15" stroke="#3c2415" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M14 22 Q14 16 11 13" stroke="#3c2415" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="5" cy="15" r="1.6" fill="#3c2415" />
+                <circle cx="11" cy="13" r="1.6" fill="#3c2415" />
+              </svg>
+            </h1>
             <p className="welcome-subtitle">Here's what's happening in your workspace.</p>
           </div>
 
@@ -294,7 +198,18 @@ export default function Dashboard() {
             <div className={`boards-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
               
               {/* Create Board Card */}
-              <div className="board-card create-card">
+              <div
+                className="board-card create-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => setShowCreatePopup(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowCreatePopup(true);
+                  }
+                }}
+              >
                 <div className="create-card-content">
                   <div className="hexagon-btn">
                     <svg className="hexagon-svg" viewBox="0 0 100 100">
@@ -306,25 +221,45 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Dynamic board list cards */}
-              {boards.map(board => (
-                <div key={board.id} className="board-card real-board">
-                  
-                  {/* Card Visual Preview */}
-                  <div className="board-card-preview">
-                    {renderBoardPreview(board.type)}
-                  </div>
-
-                  {/* Card Details */}
-                  <div className="board-card-info">
-                    <div className="board-card-header">
-                      {getBoardIcon(board.type)}
-                      <h3 className="board-card-title">{board.title}</h3>
+              {/* Boards loaded from GET /api/boards */}
+              {!loading && !error && boards.map(board => {
+                const scheme = getColorScheme(board.id);
+                return (
+                  <div
+                    key={board.id}
+                    className="board-card real-board"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => navigate(`/boards/${board.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') navigate(`/boards/${board.id}`);
+                    }}
+                    style={{
+                      '--board-bg': scheme.bg,
+                      '--board-accent': scheme.accent,
+                      '--board-text': scheme.text
+                    }}
+                  >
+                    {/* Name & description preview */}
+                    <div className="board-card-preview">
+                      <h3 className="board-card-title" title={board.name}>{board.name}</h3>
+                      <p className={`board-card-description ${board.description ? '' : 'empty'}`}>
+                        {board.description || 'No description'}
+                      </p>
                     </div>
-                    
+
                     <div className="board-card-footer">
-                      <span className="board-updated">{board.updated}</span>
-                      <button 
+                      <div className="board-meta">
+                        <span className="board-meta-item" title={`Created by ${board.createdBy || 'Unknown'}`}>
+                          <User size={13} />
+                          <span className="board-meta-text">{board.createdBy || 'Unknown'}</span>
+                        </span>
+                        <span className="board-meta-item" title={board.createdAt ? new Date(board.createdAt).toLocaleString() : ''}>
+                          <Calendar size={13} />
+                          <span className="board-meta-text">{formatCreatedDate(board.createdAt)}</span>
+                        </span>
+                      </div>
+                      <button
                         className={`star-btn ${board.starred ? 'starred' : ''}`}
                         onClick={(e) => handleToggleStar(board.id, e)}
                         aria-label={board.starred ? 'Unstar Board' : 'Star Board'}
@@ -333,11 +268,23 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-
-                </div>
-              ))}
+                );
+              })}
 
             </div>
+
+            {loading && <p className="boards-status">Loading your boards...</p>}
+
+            {!loading && error && (
+              <div className="boards-status error">
+                <span>{error}</span>
+                <button className="boards-retry-btn" onClick={handleRetry}>Retry</button>
+              </div>
+            )}
+
+            {!loading && !error && boards.length === 0 && (
+              <p className="boards-status">No boards yet. Create your first board to get started!</p>
+            )}
           </section>
 
           {/* Bottom decorative looping Bee path */}
@@ -350,6 +297,13 @@ export default function Dashboard() {
 
         </main>
       </div>
+
+      {showCreatePopup && (
+        <CreatePopup
+          onClose={() => setShowCreatePopup(false)}
+          onCreated={handleBoardCreated}
+        />
+      )}
     </div>
   );
 }

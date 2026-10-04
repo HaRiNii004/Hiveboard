@@ -11,5 +11,6 @@ public class BoardDtos {
     public record UpdateBoardRequest(@NotBlank String name, String description) {}
 
     // Lightweight shape for "my boards" list page.
-    public record BoardSummaryResponse(UUID id, String name, String description, Instant createdAt) {}
+    public record BoardSummaryResponse(UUID id, String name, String description,
+                                       String createdBy, Instant createdAt) {}
 }

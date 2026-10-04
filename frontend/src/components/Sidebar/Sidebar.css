@@ -78,7 +78,7 @@
 
 /* Workspaces Section */
 .sidebar-workspaces {
-  margin-bottom: auto; /* Push premium card & footer to bottom */
+  margin-bottom: auto; /* Push footer to bottom */
 }
 
 .section-header {
@@ -150,88 +150,6 @@
 
 .workspace-chevron {
   color: var(--color-text-muted);
-}
-
-/* Premium Card */
-.premium-card {
-  background: linear-gradient(135deg, #fffcf6, #fff3e3);
-  border: 1px solid #fce2c2;
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-bottom: 24px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-/* Floating bee in sidebar premium card */
-.premium-bee-path {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  width: 90px;
-  height: 45px;
-  pointer-events: none;
-}
-
-.premium-bee {
-  position: absolute;
-  top: -5px;
-  right: 5px;
-  width: 44px;
-  height: 44px;
-  pointer-events: none;
-  animation: floatBee 4s ease-in-out infinite;
-}
-
-@keyframes floatBee {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-3px) rotate(-5deg); }
-}
-
-.premium-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.premium-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text-brand);
-}
-
-.premium-title-icon {
-  color: var(--color-primary);
-}
-
-.premium-text {
-  font-size: 12px;
-  color: var(--color-text-body);
-  line-height: 1.4;
-}
-
-.premium-btn {
-  background-color: var(--color-primary);
-  color: #ffffff;
-  border: none;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  box-shadow: 0 4px 10px rgba(242, 143, 15, 0.2);
-  align-self: flex-start;
-  margin-top: 4px;
-}
-
-.premium-btn:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: 0 6px 12px rgba(242, 143, 15, 0.3);
 }
 
 /* Footer Actions */

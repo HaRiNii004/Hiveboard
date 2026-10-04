@@ -85,7 +85,8 @@ public class BoardService {
     }
 
     private BoardSummaryResponse toSummary(Board board) {
-        return new BoardSummaryResponse(board.getId(), board.getName(), board.getDescription(), board.getCreatedAt());
+        return new BoardSummaryResponse(board.getId(), board.getName(), board.getDescription(),
+                board.getOwner().getFullName(), board.getCreatedAt());
     }
 
     private ListResponse toListResponse(BoardList list) {
