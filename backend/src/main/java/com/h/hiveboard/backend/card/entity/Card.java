@@ -12,6 +12,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -33,6 +35,12 @@ public class Card {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    // Optional due day, e.g. 2026-10-15.
+    private LocalDate dueDate;
+
+    // Optional time on the due day, e.g. 14:30 (only set together with dueDate).
+    private LocalTime dueTime;
 
     @Column(nullable = false)
     private Double position;

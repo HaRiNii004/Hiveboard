@@ -86,11 +86,6 @@
   color: var(--color-primary);
 }
 
-.item-popup-optional {
-  font-weight: 400;
-  color: var(--color-text-muted);
-}
-
 .item-popup-input {
   font-family: var(--font-body);
   font-size: 14px;
@@ -114,6 +109,13 @@
 
 .item-popup-input:disabled {
   opacity: 0.7;
+}
+
+/* Native date picker: keep it compact and themed */
+.item-popup-input[type='date'] {
+  max-width: 220px;
+  color-scheme: light;
+  accent-color: var(--color-primary);
 }
 
 .item-popup-textarea {

@@ -1,0 +1,70 @@
+.due-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.due-picker-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-brand);
+}
+
+.due-picker-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.due-picker-input {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text-body);
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  outline: none;
+  color-scheme: light;
+  accent-color: var(--color-primary);
+  transition: var(--transition-fast);
+}
+
+.due-picker-input.time {
+  width: 130px;
+}
+
+.due-picker-input:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(242, 143, 15, 0.12);
+}
+
+.due-picker-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.due-picker-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  padding: 6px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.due-picker-clear:hover,
+.due-picker-clear:focus-visible {
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.08);
+}
+
+.due-picker-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

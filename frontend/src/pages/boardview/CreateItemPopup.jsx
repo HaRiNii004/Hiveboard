@@ -5,6 +5,7 @@ import './CreateItemPopup.css';
 // Reusable create/edit popup for the board view (used for the board, lists and cards).
 // `fields` describes the inputs, e.g.
 //   { name: 'title', label: 'Card title', required: true, maxLength: 150, multiline: false }
+// `type: 'date'` gives a date picker whose value is "yyyy-MM-dd" (or null when empty).
 // A field with `type: 'custom'` renders its own input via
 //   render({ value, onChange, disabled })  — onChange accepts a value or an updater (prev) => next
 // and keeps a non-string value (e.g. an array of label ids), starting from `defaultValue`.
@@ -142,14 +143,12 @@ export default function CreateItemPopup({
             return (
               <div key={field.name} className="item-popup-field">
                 <label htmlFor={inputId} className="item-popup-label">
-                  {field.label}{' '}
-                  {field.required
-                    ? <span className="item-popup-required">*</span>
-                    : <span className="item-popup-optional">(optional)</span>}
+                  {field.label}
+                  {field.required && <> <span className="item-popup-required">*</span></>}
                 </label>
                 {field.multiline
                   ? <textarea {...inputProps} rows={4} />
-                  : <input {...inputProps} type="text" />}
+                  : <input {...inputProps} type={field.type === 'date' ? 'date' : 'text'} />}
                 {field.multiline && field.maxLength && (
                   <span className="item-popup-char-count">
                     {values[field.name].length}/{field.maxLength}

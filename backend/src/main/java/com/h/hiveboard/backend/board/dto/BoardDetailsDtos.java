@@ -5,6 +5,8 @@ import com.h.hiveboard.backend.label.dto.LabelDtos.LabelResponse;
 import com.h.hiveboard.backend.label.entity.Label;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +16,7 @@ import java.util.UUID;
 public class BoardDetailsDtos {
 
     public record CardResponse(UUID id, String title, String description, Double position,
-                               List<LabelResponse> labels) {
+                               List<LabelResponse> labels, LocalDate dueDate, LocalTime dueTime) {
         // Shared by BoardService, BoardListService and CardService so the
         // card shape (including its labels, oldest first) is built in one place.
         public static CardResponse from(Card card) {
@@ -23,7 +25,8 @@ public class BoardDetailsDtos {
                             .thenComparing(Label::getName))
                     .map(LabelResponse::from)
                     .toList();
-            return new CardResponse(card.getId(), card.getTitle(), card.getDescription(), card.getPosition(), labels);
+            return new CardResponse(card.getId(), card.getTitle(), card.getDescription(), card.getPosition(),
+                    labels, card.getDueDate(), card.getDueTime());
         }
     }
 

@@ -259,7 +259,6 @@ export default function LabelSelect({
             </button>
           </>
         )}
-        <span className="label-select-optional">(optional)</span>
       </div>
 
       {/* Selected chips + search / create input */}

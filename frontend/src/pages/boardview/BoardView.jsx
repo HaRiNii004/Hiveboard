@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, AlignLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import LabelSelect from '../../components/LabelSelect/LabelSelect';
 import LabelChip from '../../components/LabelSelect/LabelChip';
+import DueDatePicker from '../../components/DueDatePicker/DueDatePicker';
 import CreateItemPopup from './CreateItemPopup';
 import { getBoardDetail, updateLabelsTitle } from '../../api/boards';
 import { createLabel, updateLabel, deleteLabel } from '../../api/labels';
 import { createList, updateList } from '../../api/lists';
 import { createCard, updateCard } from '../../api/cards';
 import { getColorScheme } from '../../utils/boardColors';
+import { getDueDateInfo, toTimeInputValue } from '../../utils/dueDate';
 import './BoardView.css';
 
 // Limits match the database columns (VARCHAR(255) names/titles, TEXT card description)
@@ -21,6 +23,22 @@ const LIST_FIELDS = [
 const CARD_TITLE_FIELD = {
   name: 'title', label: 'Card title', required: true, placeholder: 'e.g. Design the login page', maxLength: 150
 };
+
+// Due date + optional time, edited together as { date, time }
+const CARD_DUE_FIELD = {
+  name: 'due',
+  type: 'custom',
+  defaultValue: { date: '', time: '' },
+  render: ({ value, onChange, disabled }) => (
+    <DueDatePicker value={value} onChange={onChange} disabled={disabled} />
+  )
+};
+
+// { date, time } from the picker -> the API's dueDate / dueTime
+const toDueFields = (due) => ({
+  dueDate: due.date || null,
+  dueTime: due.date && due.time ? due.time : null
+});
 
 const CARD_DESCRIPTION_FIELD = {
   name: 'description', label: 'Description', placeholder: 'Add more details...', maxLength: 2000, multiline: true
@@ -97,16 +115,22 @@ export default function BoardView() {
     setPopup(null);
   };
 
-  const handleCreateCard = async ({ title, description, labelIds }) => {
+  const handleCreateCard = async ({ title, description, labelIds, due }) => {
     const { listId } = popup;
-    const response = await createCard(listId, title, description, labelIds);
+    const { dueDate, dueTime } = toDueFields(due);
+    const response = await createCard(listId, title, description, labelIds, dueDate, dueTime);
     setList(listId, list => ({ ...list, cards: [...list.cards, response.data] }));
     setPopup(null);
   };
 
-  const handleUpdateCard = async ({ title, description, labelIds }) => {
+  const openEditCard = (list, card) => {
+    setPopup({ type: 'editCard', listId: list.id, listName: list.name, card });
+  };
+
+  const handleUpdateCard = async ({ title, description, labelIds, due }) => {
     const { listId, card } = popup;
-    const response = await updateCard(card.id, title, description, labelIds);
+    const { dueDate, dueTime } = toDueFields(due);
+    const response = await updateCard(card.id, title, description, labelIds, dueDate, dueTime);
     setList(listId, list => ({
       ...list,
       cards: list.cards.map(c => (c.id === card.id ? response.data : c))
@@ -177,6 +201,7 @@ export default function BoardView() {
             />
           )
         },
+        CARD_DUE_FIELD,
         CARD_DESCRIPTION_FIELD
       ]
     : [];
@@ -242,7 +267,20 @@ export default function BoardView() {
 
                     <div className="board-list-cards">
                       {list.cards.map(card => (
-                        <article key={card.id} className="list-card">
+                        <article
+                          key={card.id}
+                          className="list-card"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Edit card ${card.title}`}
+                          onClick={() => openEditCard(list, card)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              openEditCard(list, card);
+                            }
+                          }}
+                        >
                           <div className="list-card-body">
                             <h3 className="list-card-title">{card.title}</h3>
                             {cardLabels(card).length > 0 && (
@@ -252,22 +290,21 @@ export default function BoardView() {
                                 ))}
                               </div>
                             )}
+                            {card.dueDate && (() => {
+                              const due = getDueDateInfo(card.dueDate, card.dueTime);
+                              return (
+                                <span className={`list-card-due ${due.status}`} title={due.tooltip}>
+                                  <Calendar size={12} />
+                                  {due.text}
+                                </span>
+                              );
+                            })()}
                           </div>
-                          <div className="list-card-actions">
-                            {card.description && (
-                              <span className="list-card-has-description" title="This card has a description">
-                                <AlignLeft size={14} />
-                              </span>
-                            )}
-                            <button
-                              className="boardview-edit-btn small"
-                              onClick={() => setPopup({ type: 'editCard', listId: list.id, listName: list.name, card })}
-                              aria-label={`Edit card ${card.title}`}
-                              title="Edit card"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                          </div>
+                          {card.description && (
+                            <span className="list-card-has-description" title="This card has a description">
+                              <AlignLeft size={14} />
+                            </span>
+                          )}
                         </article>
                       ))}
                       {list.cards.length === 0 && <p className="board-list-empty">No cards yet</p>}
@@ -337,7 +374,8 @@ export default function BoardView() {
           initialValues={{
             title: popup.card.title,
             description: popup.card.description,
-            labelIds: cardLabels(popup.card).map(label => label.id)
+            labelIds: cardLabels(popup.card).map(label => label.id),
+            due: { date: popup.card.dueDate || '', time: toTimeInputValue(popup.card.dueTime) }
           }}
           submitLabel="Save Changes"
           submittingLabel="Saving..."

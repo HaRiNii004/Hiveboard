@@ -18,12 +18,6 @@
   color: var(--color-text-brand);
 }
 
-.label-select-optional {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  margin-left: 2px;
-}
-
 .label-select-title-input {
   font-family: var(--font-body);
   font-size: 13px;

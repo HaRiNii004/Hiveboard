@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,8 @@ public class CardService {
     public CardResponse createCard(UUID listId, User user, CreateCardRequest request) {
         BoardList list = boardListService.getOwnedList(listId, user);
 
+        validateDue(request.dueDate(), request.dueTime());
+
         double nextPosition = cardRepository.findMaxPositionByListId(list.getId()).orElse(0.0) + 1.0;
         Card card = Card.builder()
                 .title(request.title())
@@ -41,6 +45,8 @@ public class CardService {
                 .position(nextPosition)
                 .boardList(list)
                 .labels(labelService.resolveBoardLabels(list.getBoard(), request.labelIds()))
+                .dueDate(request.dueDate())
+                .dueTime(request.dueTime())
                 .build();
 
         cardRepository.save(card);
@@ -50,8 +56,11 @@ public class CardService {
     @Transactional
     public CardResponse updateCard(UUID cardId, User user, UpdateCardRequest request) {
         Card card = getOwnedCard(cardId, user);
+        validateDue(request.dueDate(), request.dueTime());
         card.setTitle(request.title());
         card.setDescription(request.description());
+        card.setDueDate(request.dueDate());
+        card.setDueTime(request.dueTime());
         if (request.labelIds() != null) {
             card.setLabels(labelService.resolveBoardLabels(card.getBoardList().getBoard(), request.labelIds()));
         }
@@ -125,6 +134,13 @@ public class CardService {
             remaining.get(i).setPosition((double) i);
         }
         cardRepository.saveAll(remaining);
+    }
+
+    // A due time only makes sense on a due day.
+    private void validateDue(LocalDate dueDate, LocalTime dueTime) {
+        if (dueTime != null && dueDate == null) {
+            throw new IllegalArgumentException("A due time needs a due date");
+        }
     }
 
     private Card getOwnedCard(UUID cardId, User user) {
