@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, MessageSquare } from 'lucide-react';
+import { X, MessageSquare, Reply } from 'lucide-react';
 import { getComments, addComment } from '../../api/comments';
 import { timeAgo } from '../../utils/timeAgo';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -27,12 +27,19 @@ const fetchComments = (cardId) => {
 };
 
 // Add a comment to a card, with every comment listed below (newest first).
-// Viewers (canComment = false) can read comments but not post.
+// Each comment can have replies (one level: replying to a reply joins the same thread).
+// Viewers (canComment = false) can read comments and replies but not post.
 export default function CommentsPopup({ card, canComment = true, onClose, onCommentAdded }) {
   const [result, setResult] = useState(null); // null while loading
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState('');
+
+  // Inline reply box: which thread it's open under, and its draft
+  const [replyTo, setReplyTo] = useState(null); // top-level comment id
+  const [replyText, setReplyText] = useState('');
+  const [replying, setReplying] = useState(false);
+  const [replyError, setReplyError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -47,11 +54,11 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
   // Close on Escape (but not while a comment is being posted)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && !posting) onClose();
+      if (e.key === 'Escape' && !posting && !replying) onClose();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [posting, onClose]);
+  }, [posting, replying, onClose]);
 
   const trimmed = text.trim();
 
@@ -81,16 +88,99 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
     }
   };
 
+  // Open the reply box under a thread. Replying to a reply starts with an @mention.
+  const startReply = (thread, replyingTo) => {
+    setReplyTo(thread.id);
+    setReplyText(replyingTo ? `@${replyingTo.authorName} ` : '');
+    setReplyError('');
+  };
+
+  const cancelReply = () => {
+    setReplyTo(null);
+    setReplyText('');
+    setReplyError('');
+  };
+
+  const handleReplySubmit = async (e) => {
+    if (e) e.preventDefault();
+    const trimmedReply = replyText.trim();
+    if (!trimmedReply || replying) return;
+
+    setReplying(true);
+    setReplyError('');
+    try {
+      const response = await addComment(card.id, trimmedReply, replyTo);
+      const reply = response.data;
+      // Backend files it under the thread's top-level comment (reply.parentId)
+      setResult(prev => (prev ? {
+        ...prev,
+        comments: prev.comments.map(c =>
+          c.id === reply.parentId ? { ...c, replies: [...(c.replies || []), reply] } : c
+        )
+      } : prev));
+      cancelReply();
+      onCommentAdded(reply);
+    } catch (err) {
+      console.error(err);
+      setReplyError(getApiErrorMessage(err, 'Could not add your reply. Please try again.'));
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  const handleReplyKeyDown = (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      handleReplySubmit();
+    } else if (e.key === 'Escape') {
+      e.stopPropagation(); // close the reply box, not the whole popup
+      if (!replying) cancelReply();
+    }
+  };
+
   const handleRetry = () => {
     setResult(null);
     fetchComments(card.id).then(setResult);
   };
 
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget && !posting) onClose();
+    if (e.target === e.currentTarget && !posting && !replying) onClose();
   };
 
   const comments = result ? result.comments : [];
+  const totalCount = comments.reduce((sum, c) => sum + 1 + (c.replies ? c.replies.length : 0), 0);
+
+  // One comment or reply: avatar, name, time, text and a Reply link
+  const renderComment = (comment, thread, isReply) => (
+    <>
+      <span className={`comment-avatar ${isReply ? 'small' : ''}`} aria-hidden="true">
+        {initials(comment.authorName)}
+      </span>
+      <div className="comment-body">
+        <div className="comment-meta">
+          <span className="comment-author">{comment.authorName}</span>
+          <time
+            className="comment-time"
+            dateTime={comment.createdAt}
+            title={comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}
+          >
+            {timeAgo(comment.createdAt)}
+          </time>
+        </div>
+        <p className="comment-text">{comment.text}</p>
+        {canComment && (
+          <button
+            type="button"
+            className="comment-reply-btn"
+            onClick={() => startReply(thread, isReply ? comment : null)}
+            disabled={replying}
+          >
+            <Reply size={13} />
+            Reply
+          </button>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="comments-popup-overlay" onMouseDown={handleOverlayClick}>
@@ -148,7 +238,7 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
         {/* All comments */}
         <div className="comments-popup-list-header">
           {result && !result.error && (
-            <span>{comments.length} {comments.length === 1 ? 'comment' : 'comments'}</span>
+            <span>{totalCount} {totalCount === 1 ? 'comment' : 'comments'}</span>
           )}
         </div>
 
@@ -169,22 +259,51 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
 
         {comments.length > 0 && (
           <ul className="comments-popup-list">
-            {comments.map(comment => (
-              <li key={comment.id} className="comment-item">
-                <span className="comment-avatar" aria-hidden="true">{initials(comment.authorName)}</span>
-                <div className="comment-body">
-                  <div className="comment-meta">
-                    <span className="comment-author">{comment.authorName}</span>
-                    <time
-                      className="comment-time"
-                      dateTime={comment.createdAt}
-                      title={comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}
-                    >
-                      {timeAgo(comment.createdAt)}
-                    </time>
+            {comments.map(thread => (
+              <li key={thread.id} className="comment-thread">
+                <div className="comment-item">{renderComment(thread, thread, false)}</div>
+
+                {/* Replies, oldest first, indented under the comment */}
+                {((thread.replies && thread.replies.length > 0) || replyTo === thread.id) && (
+                  <div className="comment-replies">
+                    {(thread.replies || []).map(reply => (
+                      <div key={reply.id} className="comment-item reply">
+                        {renderComment(reply, thread, true)}
+                      </div>
+                    ))}
+
+                    {replyTo === thread.id && (
+                      <form className="comment-reply-form" onSubmit={handleReplySubmit}>
+                        <textarea
+                          className="comments-popup-input reply"
+                          placeholder={`Reply to ${thread.authorName}...`}
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          onKeyDown={handleReplyKeyDown}
+                          maxLength={TEXT_MAX}
+                          rows={2}
+                          disabled={replying}
+                          aria-label={`Reply to ${thread.authorName}`}
+                          autoFocus
+                          onFocus={(e) => {
+                            // put the cursor after a prefilled @mention
+                            const end = e.target.value.length;
+                            e.target.setSelectionRange(end, end);
+                          }}
+                        />
+                        <div className="comment-reply-actions">
+                          <button type="button" className="comment-reply-cancel" onClick={cancelReply} disabled={replying}>
+                            Cancel
+                          </button>
+                          <button type="submit" className="comments-popup-btn small" disabled={!replyText.trim() || replying}>
+                            {replying ? 'Replying...' : 'Reply'}
+                          </button>
+                        </div>
+                        {replyError && <div className="comments-popup-error">{replyError}</div>}
+                      </form>
+                    )}
                   </div>
-                  <p className="comment-text">{comment.text}</p>
-                </div>
+                )}
               </li>
             ))}
           </ul>

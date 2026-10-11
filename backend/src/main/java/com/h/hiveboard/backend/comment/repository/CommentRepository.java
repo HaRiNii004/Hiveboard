@@ -10,7 +10,8 @@ import java.util.UUID;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, UUID> {
-    // Newest first; author fetched in the same query since every comment shows its name.
+    // Every comment and reply on a card in one query (oldest first), author
+    // included; CommentService arranges them into threads.
     @EntityGraph(attributePaths = "author")
-    List<Comment> findByCardIdOrderByCreatedAtDesc(UUID cardId);
+    List<Comment> findByCardIdOrderByCreatedAtAsc(UUID cardId);
 }
