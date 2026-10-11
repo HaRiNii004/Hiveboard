@@ -2,8 +2,8 @@ package com.h.hiveboard.backend.label.service;
 
 import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.board.entity.Board;
-import com.h.hiveboard.backend.board.service.BoardService;
-import com.h.hiveboard.backend.exception.ForbiddenOperationException;
+import com.h.hiveboard.backend.member.entity.BoardRole;
+import com.h.hiveboard.backend.member.service.BoardAccessService;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import com.h.hiveboard.backend.label.dto.LabelDtos.CreateLabelRequest;
 import com.h.hiveboard.backend.label.dto.LabelDtos.LabelResponse;
@@ -25,11 +25,11 @@ import java.util.UUID;
 public class LabelService {
 
     private final LabelRepository labelRepository;
-    private final BoardService boardService; // reused for its ownership check
+    private final BoardAccessService boardAccessService; // role checks
 
     @Transactional(readOnly = true)
     public List<LabelResponse> getLabels(UUID boardId, User user) {
-        Board board = boardService.getOwnedBoard(boardId, user);
+        Board board = boardAccessService.requireRole(boardId, user, BoardRole.VIEWER);
         return labelRepository.findByBoardIdOrderByCreatedAtAsc(board.getId())
                 .stream()
                 .map(LabelResponse::from)
@@ -38,7 +38,7 @@ public class LabelService {
 
     @Transactional
     public LabelResponse createLabel(UUID boardId, User user, CreateLabelRequest request) {
-        Board board = boardService.getOwnedBoard(boardId, user);
+        Board board = boardAccessService.requireRole(boardId, user, BoardRole.MEMBER);
         String name = request.name().trim();
 
         if (labelRepository.existsByBoardIdAndNameIgnoreCase(board.getId(), name)) {
@@ -57,7 +57,7 @@ public class LabelService {
 
     @Transactional
     public LabelResponse updateLabel(UUID labelId, User user, UpdateLabelRequest request) {
-        Label label = getOwnedLabel(labelId, user);
+        Label label = getLabelForMember(labelId, user);
         String name = request.name().trim();
 
         if (labelRepository.existsByBoardIdAndNameIgnoreCaseAndIdNot(label.getBoard().getId(), name, label.getId())) {
@@ -72,7 +72,7 @@ public class LabelService {
 
     @Transactional
     public void deleteLabel(UUID labelId, User user) {
-        Label label = getOwnedLabel(labelId, user);
+        Label label = getLabelForMember(labelId, user);
         labelRepository.deleteCardAssignments(label.getId());
         labelRepository.delete(label);
     }
@@ -94,13 +94,12 @@ public class LabelService {
         return new HashSet<>(labels);
     }
 
-    private Label getOwnedLabel(UUID labelId, User user) {
+    // Managing label options is something Members may do.
+    private Label getLabelForMember(UUID labelId, User user) {
         Label label = labelRepository.findById(labelId)
                 .orElseThrow(() -> new ResourceNotFoundException("No label with id " + labelId));
 
-        if (!label.getBoard().getOwner().getId().equals(user.getId())) {
-            throw new ForbiddenOperationException("You don't have access to this label");
-        }
+        boardAccessService.requireRole(label.getBoard().getId(), user, BoardRole.MEMBER);
         return label;
     }
 }

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { signup } from '../../api/auth';
 import HiveVisual from '../../components/HiveVisual/HiveVisual';
+import { getSafeRedirect, withRedirect } from '../../utils/redirect';
 import logo from '../../assets/logo.svg';
 import googleIcon from '../../assets/google.svg';
 import './Signup.css';
@@ -17,6 +18,9 @@ export default function Signup() {
   const [success, setSuccess] = useState('');
   
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // e.g. back to /invite/<token> after logging in from an invite link
+  const redirect = getSafeRedirect(searchParams);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -45,7 +49,7 @@ export default function Signup() {
       setSuccess('Account created successfully! Redirecting...');
       
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(redirect || '/dashboard');
       }, 1500);
 
     } catch (err) {
@@ -84,7 +88,7 @@ export default function Signup() {
 
             {/* Auth Tab Switcher */}
             <div className="tab-switcher">
-              <Link to="/login" className="tab-btn inactive">Log In</Link>
+              <Link to={withRedirect('/login', redirect)} className="tab-btn inactive">Log In</Link>
               <button className="tab-btn active">Sign Up</button>
             </div>
 
@@ -167,7 +171,7 @@ export default function Signup() {
 
             {/* Form Footer */}
             <p className="form-footer">
-              Already have an account? <Link to="/login">Log in</Link>
+              Already have an account? <Link to={withRedirect('/login', redirect)}>Log in</Link>
             </p>
 
           </div>

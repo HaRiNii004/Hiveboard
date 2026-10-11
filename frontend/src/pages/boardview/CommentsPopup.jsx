@@ -2,19 +2,10 @@ import { useEffect, useState } from 'react';
 import { X, MessageSquare } from 'lucide-react';
 import { getComments, addComment } from '../../api/comments';
 import { timeAgo } from '../../utils/timeAgo';
+import { getApiErrorMessage } from '../../utils/apiError';
 import './CommentsPopup.css';
 
 const TEXT_MAX = 2000; // matches @Size(max = 2000) on the backend
-
-const errorMessage = (err, fallback) => {
-  const data = err && err.response && err.response.data;
-  const status = err && err.response && err.response.status;
-  if (status === 401 || status === 403) return 'Your session has expired. Please log in again.';
-  if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-    return data.error || Object.values(data)[0];
-  }
-  return fallback;
-};
 
 const initials = (name) =>
   (name || '?')
@@ -31,12 +22,13 @@ const fetchComments = (cardId) => {
     .then(response => ({ comments: response.data, error: '' }))
     .catch(err => {
       console.error(err);
-      return { comments: [], error: errorMessage(err, 'Could not load comments. Please try again.') };
+      return { comments: [], error: getApiErrorMessage(err, 'Could not load comments. Please try again.') };
     });
 };
 
-// Add a comment to a card, with every comment listed below (newest first)
-export default function CommentsPopup({ card, onClose, onCommentAdded }) {
+// Add a comment to a card, with every comment listed below (newest first).
+// Viewers (canComment = false) can read comments but not post.
+export default function CommentsPopup({ card, canComment = true, onClose, onCommentAdded }) {
   const [result, setResult] = useState(null); // null while loading
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -76,7 +68,7 @@ export default function CommentsPopup({ card, onClose, onCommentAdded }) {
       onCommentAdded(response.data);
     } catch (err) {
       console.error(err);
-      setPostError(errorMessage(err, 'Could not add your comment. Please try again.'));
+      setPostError(getApiErrorMessage(err, 'Could not add your comment. Please try again.'));
     } finally {
       setPosting(false);
     }
@@ -124,28 +116,34 @@ export default function CommentsPopup({ card, onClose, onCommentAdded }) {
           </button>
         </div>
 
-        {/* New comment */}
-        <form className="comments-popup-form" onSubmit={handleSubmit}>
-          <textarea
-            className="comments-popup-input"
-            placeholder="Write a comment..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            maxLength={TEXT_MAX}
-            rows={3}
-            disabled={posting}
-            aria-label="Write a comment"
-            autoFocus
-          />
-          <div className="comments-popup-form-footer">
-            <span className="comments-popup-shortcut">Ctrl + Enter to post</span>
-            <button type="submit" className="comments-popup-btn" disabled={!trimmed || posting}>
-              {posting ? 'Posting...' : 'Comment'}
-            </button>
-          </div>
-          {postError && <div className="comments-popup-error">{postError}</div>}
-        </form>
+        {/* New comment (Members and Admins) */}
+        {canComment ? (
+          <form className="comments-popup-form" onSubmit={handleSubmit}>
+            <textarea
+              className="comments-popup-input"
+              placeholder="Write a comment..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              maxLength={TEXT_MAX}
+              rows={3}
+              disabled={posting}
+              aria-label="Write a comment"
+              autoFocus
+            />
+            <div className="comments-popup-form-footer">
+              <span className="comments-popup-shortcut">Ctrl + Enter to post</span>
+              <button type="submit" className="comments-popup-btn" disabled={!trimmed || posting}>
+                {posting ? 'Posting...' : 'Comment'}
+              </button>
+            </div>
+            {postError && <div className="comments-popup-error">{postError}</div>}
+          </form>
+        ) : (
+          <p className="comments-popup-readonly">
+            You're a viewer on this board, so you can read comments but not add them.
+          </p>
+        )}
 
         {/* All comments */}
         <div className="comments-popup-list-header">
@@ -164,7 +162,9 @@ export default function CommentsPopup({ card, onClose, onCommentAdded }) {
         )}
 
         {result && !result.error && comments.length === 0 && (
-          <p className="comments-popup-status">No comments yet. Be the first to add one.</p>
+          <p className="comments-popup-status">
+            {canComment ? 'No comments yet. Be the first to add one.' : 'No comments yet.'}
+          </p>
         )}
 
         {comments.length > 0 && (

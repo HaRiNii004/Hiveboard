@@ -3,6 +3,7 @@ package com.h.hiveboard.backend.board.dto;
 import com.h.hiveboard.backend.card.entity.Card;
 import com.h.hiveboard.backend.label.dto.LabelDtos.LabelResponse;
 import com.h.hiveboard.backend.label.entity.Label;
+import com.h.hiveboard.backend.member.entity.BoardRole;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,8 +35,9 @@ public class BoardDetailsDtos {
     public record ListResponse(UUID id, String name, Double position, List<CardResponse> cards) {}
 
     // labelsTitle is the board's name for its labels field (e.g. "Labels", "Tags"),
-    // labels are the options every card on the board can pick from.
+    // labels are the options every card on the board can pick from,
+    // myRole is the caller's role so the UI can hide what they can't do.
     public record BoardDetailResponse(UUID id, String name, String description,
                                       String labelsTitle, List<LabelResponse> labels,
-                                      List<ListResponse> lists) {}
+                                      List<ListResponse> lists, BoardRole myRole) {}
 }

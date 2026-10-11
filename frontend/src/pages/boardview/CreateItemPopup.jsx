@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { getApiErrorMessage } from '../../utils/apiError';
 import './CreateItemPopup.css';
 
 // Reusable create/edit popup for the board view (used for the board, lists and cards).
@@ -10,6 +11,7 @@ import './CreateItemPopup.css';
 //   render({ value, onChange, disabled })  — onChange accepts a value or an updater (prev) => next
 // and keeps a non-string value (e.g. an array of label ids), starting from `defaultValue`.
 // `initialValues` pre-fills the inputs when editing.
+// `readOnly` shows the values without letting them change (e.g. for board Viewers).
 // `onSubmit(values)` must return a promise; if it rejects, the error is shown in the popup.
 export default function CreateItemPopup({
   heading,
@@ -18,6 +20,7 @@ export default function CreateItemPopup({
   initialValues = {},
   submitLabel,
   submittingLabel = 'Creating...',
+  readOnly = false,
   onSubmit,
   onClose
 }) {
@@ -52,6 +55,7 @@ export default function CreateItemPopup({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     setError('');
 
     const missing = fields.find(field => field.required && !values[field.name].trim());
@@ -73,16 +77,7 @@ export default function CreateItemPopup({
       await onSubmit(trimmed);
     } catch (err) {
       console.error(err);
-      const data = err.response && err.response.data;
-      const status = err.response && err.response.status;
-      if (status === 401 || status === 403) {
-        setError('Your session has expired. Please log in again.');
-      } else if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-        // Backend sends { error: "..." } or a field -> message map for validation errors
-        setError(data.error || Object.values(data)[0]);
-      } else {
-        setError('Connection to backend failed. Please try again.');
-      }
+      setError(getApiErrorMessage(err));
       setLoading(false);
     }
   };
@@ -122,7 +117,7 @@ export default function CreateItemPopup({
                   {field.render({
                     value: values[field.name],
                     onChange: (value) => handleChange(field.name, value),
-                    disabled: loading
+                    disabled: loading || readOnly
                   })}
                 </div>
               );
@@ -137,7 +132,8 @@ export default function CreateItemPopup({
               onChange: (e) => handleChange(field.name, e.target.value),
               maxLength: field.maxLength,
               autoFocus: index === 0,
-              disabled: loading
+              disabled: loading || readOnly,
+              readOnly
             };
 
             return (
@@ -162,12 +158,20 @@ export default function CreateItemPopup({
 
           {/* Actions */}
           <div className="item-popup-actions">
-            <button type="button" className="item-popup-btn secondary" onClick={onClose} disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" className="item-popup-btn primary" disabled={loading || missingRequired}>
-              {loading ? submittingLabel : submitLabel}
-            </button>
+            {readOnly ? (
+              <button type="button" className="item-popup-btn secondary" onClick={onClose}>
+                Close
+              </button>
+            ) : (
+              <>
+                <button type="button" className="item-popup-btn secondary" onClick={onClose} disabled={loading}>
+                  Cancel
+                </button>
+                <button type="submit" className="item-popup-btn primary" disabled={loading || missingRequired}>
+                  {loading ? submittingLabel : submitLabel}
+                </button>
+              </>
+            )}
           </div>
         </form>
 

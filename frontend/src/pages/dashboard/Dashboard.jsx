@@ -7,6 +7,7 @@ import Bee from '../../components/Bee/Bee';
 import CreatePopup from './CreatePopup/CreatePopup';
 import { getBoards } from '../../api/boards';
 import { getColorScheme } from '../../utils/boardColors';
+import { roleLabel } from '../../utils/boardPermissions';
 import './Dashboard.css';
 
 const formatCreatedDate = (createdAt) => {
@@ -25,6 +26,8 @@ const toBoard = (summary) => ({
   description: summary.description,
   createdBy: summary.createdBy,
   createdAt: summary.createdAt,
+  myRole: summary.myRole,       // my role on this board: ADMIN | MEMBER | VIEWER
+  ownedByMe: summary.ownedByMe, // false for boards shared with me
   starred: false
 });
 
@@ -256,6 +259,9 @@ export default function Dashboard() {
                   >
                     {/* Name & description preview */}
                     <div className="board-card-preview">
+                      {!board.ownedByMe && (
+                        <span className="board-shared-badge">Shared with you · {roleLabel(board.myRole)}</span>
+                      )}
                       <h3 className="board-card-title" title={board.name}>{board.name}</h3>
                       <p className={`board-card-description ${board.description ? '' : 'empty'}`}>
                         {board.description || 'No description'}
@@ -274,15 +280,18 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <div className="board-card-actions">
-                        <button
-                          className="edit-btn"
-                          onClick={(e) => handleEditBoard(board, e)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          aria-label="Edit Board"
-                          title="Edit board"
-                        >
-                          <Pencil size={15} />
-                        </button>
+                        {/* Only board admins may rename or re-describe a board */}
+                        {board.myRole === 'ADMIN' && (
+                          <button
+                            className="edit-btn"
+                            onClick={(e) => handleEditBoard(board, e)}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            aria-label="Edit Board"
+                            title="Edit board"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                        )}
                         <button
                           className={`star-btn ${board.starred ? 'starred' : ''}`}
                           onClick={(e) => handleToggleStar(board.id, e)}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { createBoard, updateBoard } from '../../../api/boards';
+import { getApiErrorMessage } from '../../../utils/apiError';
 import './CreatePopup.css';
 
 // Matches the default VARCHAR(255) columns on the boards table
@@ -47,15 +48,7 @@ export default function CreatePopup({ board, onClose, onCreated, onUpdated }) {
       }
     } catch (err) {
       console.error(err);
-      const data = err.response && err.response.data;
-      const status = err.response && err.response.status;
-      if (status === 401 || status === 403) {
-        setError('Your session has expired. Please log in again.');
-      } else if (data && (data.error || data.name || data.description)) {
-        setError(data.error || data.name || data.description);
-      } else {
-        setError('Connection to backend failed. Please try again.');
-      }
+      setError(getApiErrorMessage(err));
       setLoading(false);
     }
   };

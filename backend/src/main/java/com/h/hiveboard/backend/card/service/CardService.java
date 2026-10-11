@@ -11,6 +11,8 @@ import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.card.repository.CardRepository;
 import com.h.hiveboard.backend.boardlist.service.BoardListService;
 import com.h.hiveboard.backend.label.service.LabelService;
+import com.h.hiveboard.backend.member.entity.BoardRole;
+import com.h.hiveboard.backend.member.service.BoardAccessService;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import com.h.hiveboard.backend.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +31,13 @@ import java.util.UUID;
 public class CardService {
 
     private final CardRepository cardRepository;
-    private final BoardListService boardListService; // reused for its ownership check
+    private final BoardListService boardListService; // finds lists with a role check
+    private final BoardAccessService boardAccessService;
     private final LabelService labelService;         // validates label ids belong to the board
 
     @Transactional
     public CardResponse createCard(UUID listId, User user, CreateCardRequest request) {
-        BoardList list = boardListService.getOwnedList(listId, user);
+        BoardList list = boardListService.getListForRole(listId, user, BoardRole.MEMBER);
 
         validateDue(request.dueDate(), request.dueTime());
 
@@ -55,7 +58,7 @@ public class CardService {
 
     @Transactional
     public CardResponse updateCard(UUID cardId, User user, UpdateCardRequest request) {
-        Card card = getOwnedCard(cardId, user);
+        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
         validateDue(request.dueDate(), request.dueTime());
         card.setTitle(request.title());
         card.setDescription(request.description());
@@ -72,8 +75,8 @@ public class CardService {
     // column, then compact the old column's positions so there's no gap.
     @Transactional
     public CardResponse moveCard(UUID cardId, User user, MoveCardRequest request) {
-        Card card = getOwnedCard(cardId, user);
-        BoardList targetList = boardListService.getOwnedList(request.targetListId(), user);
+        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
+        BoardList targetList = boardListService.getListForRole(request.targetListId(), user, BoardRole.MEMBER);
 
         if (!targetList.getBoard().getId().equals(card.getBoardList().getBoard().getId())) {
             throw new ForbiddenOperationException("Cards can only move within the same board");
@@ -98,7 +101,7 @@ public class CardService {
     // insert-at-index math server-side.
     @Transactional
     public void reorderCards(UUID listId, User user, ReorderCardsRequest request) {
-        BoardList list = boardListService.getOwnedList(listId, user);
+        BoardList list = boardListService.getListForRole(listId, user, BoardRole.MEMBER);
 
         Map<UUID, Card> byId = new HashMap<>();
         for (Card card : list.getCards()) {
@@ -122,7 +125,7 @@ public class CardService {
 
     @Transactional
     public void deleteCard(UUID cardId, User user) {
-        Card card = getOwnedCard(cardId, user);
+        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
         BoardList list = card.getBoardList();
         cardRepository.delete(card);
         compactPositions(list);
@@ -143,14 +146,13 @@ public class CardService {
         }
     }
 
-    // Public so CommentService can reuse this same ownership check.
-    public Card getOwnedCard(UUID cardId, User user) {
+    // Finds a card and checks the caller's role on its board (404 for non-members).
+    // Public so CommentService can reuse it.
+    public Card getCardForRole(UUID cardId, User user, BoardRole required) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new ResourceNotFoundException("No card with id " + cardId));
 
-        if (!card.getBoardList().getBoard().getOwner().getId().equals(user.getId())) {
-            throw new ForbiddenOperationException("You don't have access to this card");
-        }
+        boardAccessService.requireRole(card.getBoardList().getBoard().getId(), user, required);
         return card;
     }
 

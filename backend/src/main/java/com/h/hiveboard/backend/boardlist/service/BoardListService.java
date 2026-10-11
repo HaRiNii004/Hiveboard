@@ -10,9 +10,9 @@ import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.boardlist.entity.BoardList;
 import com.h.hiveboard.backend.card.entity.Card;
 import com.h.hiveboard.backend.boardlist.repository.BoardListRepository;
-import com.h.hiveboard.backend.board.service.BoardService;
+import com.h.hiveboard.backend.member.entity.BoardRole;
+import com.h.hiveboard.backend.member.service.BoardAccessService;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
-import com.h.hiveboard.backend.exception.ForbiddenOperationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +27,11 @@ import java.util.UUID;
 public class BoardListService {
 
     private final BoardListRepository boardListRepository;
-    private final BoardService boardService; // reused for its ownership check
+    private final BoardAccessService boardAccessService; // role checks
 
     @Transactional
     public ListResponse createList(UUID boardId, User user, CreateListRequest request) {
-        Board board = boardService.getOwnedBoard(boardId, user);
+        Board board = boardAccessService.requireRole(boardId, user, BoardRole.MEMBER);
 
         double nextPosition = boardListRepository.findMaxPositionByBoardId(board.getId()).orElse(0.0) + 1.0;
         BoardList list = BoardList.builder()
@@ -46,7 +46,7 @@ public class BoardListService {
 
     @Transactional
     public ListResponse updateList(UUID listId, User user, UpdateListRequest request) {
-        BoardList list = getOwnedList(listId, user);
+        BoardList list = getListForRole(listId, user, BoardRole.MEMBER);
         list.setName(request.name());
         boardListRepository.save(list);
         return toResponse(list);
@@ -56,7 +56,7 @@ public class BoardListService {
     // so reordering is just: re-stamp position = index in that array.
     @Transactional
     public void reorderLists(UUID boardId, User user, ReorderListsRequest request) {
-        Board board = boardService.getOwnedBoard(boardId, user);
+        Board board = boardAccessService.requireRole(boardId, user, BoardRole.MEMBER);
 
         Map<UUID, BoardList> byId = new HashMap<>();
         for (BoardList list : board.getLists()) {
@@ -80,18 +80,17 @@ public class BoardListService {
 
     @Transactional
     public void deleteList(UUID listId, User user) {
-        BoardList list = getOwnedList(listId, user);
+        BoardList list = getListForRole(listId, user, BoardRole.MEMBER);
         boardListRepository.delete(list);
     }
 
-    // Package-private so CardService can reuse this same ownership check.
-    public BoardList getOwnedList(UUID listId, User user) {
+    // Finds a list and checks the caller's role on its board (404 for non-members).
+    // Public so CardService can reuse it.
+    public BoardList getListForRole(UUID listId, User user, BoardRole required) {
         BoardList list = boardListRepository.findById(listId)
                 .orElseThrow(() -> new ResourceNotFoundException("No list with id " + listId));
 
-        if (!list.getBoard().getOwner().getId().equals(user.getId())) {
-            throw new ForbiddenOperationException("You don't have access to this list");
-        }
+        boardAccessService.requireRole(list.getBoard().getId(), user, required);
         return list;
     }
 

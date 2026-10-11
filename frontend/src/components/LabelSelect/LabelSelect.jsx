@@ -2,21 +2,10 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { Check, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import LabelChip from './LabelChip';
 import { LABEL_COLORS, pickNewLabelColor } from './labelColors';
+import { getApiErrorMessage } from '../../utils/apiError';
 import './LabelSelect.css';
 
 const NAME_MAX = 50; // matches @Size(max = 50) on the backend
-
-const errorMessage = (err) => {
-  const data = err && err.response && err.response.data;
-  const status = err && err.response && err.response.status;
-  if (status === 401 || status === 403) {
-    return 'Your session has expired. Please log in again.';
-  }
-  if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-    return data.error || Object.values(data)[0];
-  }
-  return 'Something went wrong. Please try again.';
-};
 
 // Notion-style multi-select for a card's labels.
 //
@@ -77,7 +66,7 @@ export default function LabelSelect({
     setError('');
     const next = queueRef.current.then(task).catch(err => {
       console.error(err);
-      setError(errorMessage(err));
+      setError(getApiErrorMessage(err, 'Something went wrong. Please try again.'));
     });
     queueRef.current = next;
     return next;

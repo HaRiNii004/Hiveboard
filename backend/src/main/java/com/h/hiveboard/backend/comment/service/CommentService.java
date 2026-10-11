@@ -7,6 +7,7 @@ import com.h.hiveboard.backend.comment.dto.CommentDtos.CommentResponse;
 import com.h.hiveboard.backend.comment.dto.CommentDtos.CreateCommentRequest;
 import com.h.hiveboard.backend.comment.entity.Comment;
 import com.h.hiveboard.backend.comment.repository.CommentRepository;
+import com.h.hiveboard.backend.member.entity.BoardRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +20,11 @@ import java.util.UUID;
 public class CommentService {
 
     private final CommentRepository commentRepository;
-    private final CardService cardService; // reused for its ownership check
+    private final CardService cardService; // finds cards with a role check
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(UUID cardId, User user) {
-        Card card = cardService.getOwnedCard(cardId, user);
+        Card card = cardService.getCardForRole(cardId, user, BoardRole.VIEWER);
         return commentRepository.findByCardIdOrderByCreatedAtDesc(card.getId())
                 .stream()
                 .map(CommentResponse::from)
@@ -32,7 +33,7 @@ public class CommentService {
 
     @Transactional
     public CommentResponse addComment(UUID cardId, User user, CreateCommentRequest request) {
-        Card card = cardService.getOwnedCard(cardId, user);
+        Card card = cardService.getCardForRole(cardId, user, BoardRole.MEMBER);
 
         Comment comment = Comment.builder()
                 .text(request.text().trim())

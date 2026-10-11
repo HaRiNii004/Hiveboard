@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare, Users, Eye } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import LabelSelect from '../../components/LabelSelect/LabelSelect';
@@ -8,12 +8,15 @@ import LabelChip from '../../components/LabelSelect/LabelChip';
 import DueDatePicker from '../../components/DueDatePicker/DueDatePicker';
 import CreateItemPopup from './CreateItemPopup';
 import CommentsPopup from './CommentsPopup';
+import ShareDialog from './ShareDialog';
 import { getBoardDetail, updateLabelsTitle } from '../../api/boards';
 import { createLabel, updateLabel, deleteLabel } from '../../api/labels';
 import { createList, updateList } from '../../api/lists';
 import { createCard, updateCard } from '../../api/cards';
 import { getColorScheme } from '../../utils/boardColors';
 import { getDueDateInfo, toTimeInputValue } from '../../utils/dueDate';
+import { getBoardPermissions, roleLabel } from '../../utils/boardPermissions';
+import { getApiErrorMessage } from '../../utils/apiError';
 import './BoardView.css';
 
 // Limits match the database columns (VARCHAR(255) names/titles, TEXT card description)
@@ -52,12 +55,9 @@ const fetchBoard = (boardId) => {
     .catch(err => {
       console.error(err);
       const status = err.response && err.response.status;
-      let error = 'Could not load this board. Please try again.';
-      if (status === 401) {
-        error = 'Your session has expired. Please log in again.';
-      } else if (status === 403 || status === 404 || status === 400) {
-        error = "This board doesn't exist or you don't have access to it.";
-      }
+      const error = status === 404 || status === 400
+        ? "This board doesn't exist or you don't have access to it."
+        : getApiErrorMessage(err, 'Could not load this board. Please try again.');
       return { boardId, board: null, error };
     });
 };
@@ -70,12 +70,15 @@ export default function BoardView() {
   const [result, setResult] = useState(null);
   // null | { type: 'list' } | { type: 'editList', list }
   //      | { type: 'card', listId, listName } | { type: 'editCard', listId, listName, card }
-  //      | { type: 'comments', listId, card }
+  //      | { type: 'comments', listId, card } | { type: 'share' }
   const [popup, setPopup] = useState(null);
 
   const loading = !result || result.boardId !== boardId;
   const board = loading ? null : result.board;
   const error = loading ? '' : result.error;
+
+  // What the UI offers is based on my role; the backend enforces it regardless
+  const perms = getBoardPermissions(board ? board.myRole : null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +89,11 @@ export default function BoardView() {
       cancelled = true;
     };
   }, [boardId]);
+
+  // Reload quietly (e.g. after my own role changed in the Share dialog)
+  const refreshBoard = () => {
+    fetchBoard(boardId).then(setResult);
+  };
 
   const handleRetry = () => {
     setResult(null);
@@ -258,8 +266,23 @@ export default function BoardView() {
             <>
               {/* Board name & description */}
               <div className="boardview-heading">
-                <h1 className="boardview-title">{board.name}</h1>
-                {board.description && <p className="boardview-description">{board.description}</p>}
+                <div className="boardview-heading-text">
+                  <h1 className="boardview-title">{board.name}</h1>
+                  {board.description && <p className="boardview-description">{board.description}</p>}
+                </div>
+                <div className="boardview-heading-actions">
+                  <span
+                    className={`boardview-role-badge ${board.myRole.toLowerCase()}`}
+                    title={perms.canEdit ? undefined : 'You can view this board but not change it'}
+                  >
+                    {!perms.canEdit && <Eye size={13} />}
+                    {roleLabel(board.myRole)}
+                  </span>
+                  <button className="boardview-share-btn" onClick={() => setPopup({ type: 'share' })}>
+                    <Users size={16} />
+                    {perms.isAdmin ? 'Share' : 'Members'}
+                  </button>
+                </div>
               </div>
 
               {/* Lists */}
@@ -270,14 +293,16 @@ export default function BoardView() {
                       <h2 className="board-list-title" title={list.name}>{list.name}</h2>
                       <div className="board-list-header-actions">
                         <span className="board-list-count">{list.cards.length}</span>
-                        <button
-                          className="boardview-edit-btn small"
-                          onClick={() => setPopup({ type: 'editList', list })}
-                          aria-label={`Edit list ${list.name}`}
-                          title="Edit list"
-                        >
-                          <Pencil size={14} />
-                        </button>
+                        {perms.canEdit && (
+                          <button
+                            className="boardview-edit-btn small"
+                            onClick={() => setPopup({ type: 'editList', list })}
+                            aria-label={`Edit list ${list.name}`}
+                            title="Edit list"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -288,7 +313,7 @@ export default function BoardView() {
                           className="list-card"
                           role="button"
                           tabIndex={0}
-                          aria-label={`Edit card ${card.title}`}
+                          aria-label={`${perms.canEdit ? 'Edit' : 'View'} card ${card.title}`}
                           onClick={() => openEditCard(list, card)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -343,21 +368,28 @@ export default function BoardView() {
                       {list.cards.length === 0 && <p className="board-list-empty">No cards yet</p>}
                     </div>
 
-                    <button
-                      className="board-list-add-card-btn"
-                      onClick={() => setPopup({ type: 'card', listId: list.id, listName: list.name })}
-                    >
-                      <Plus size={16} />
-                      Add a card
-                    </button>
+                    {perms.canEdit && (
+                      <button
+                        className="board-list-add-card-btn"
+                        onClick={() => setPopup({ type: 'card', listId: list.id, listName: list.name })}
+                      >
+                        <Plus size={16} />
+                        Add a card
+                      </button>
+                    )}
                   </section>
                 ))}
 
                 {/* Create list column */}
-                <button className="board-list-create" onClick={() => setPopup({ type: 'list' })}>
-                  <Plus size={20} />
-                  {board.lists.length === 0 ? 'Create your first list' : 'Create a list'}
-                </button>
+                {perms.canEdit && (
+                  <button className="board-list-create" onClick={() => setPopup({ type: 'list' })}>
+                    <Plus size={20} />
+                    {board.lists.length === 0 ? 'Create your first list' : 'Create a list'}
+                  </button>
+                )}
+                {!perms.canEdit && board.lists.length === 0 && (
+                  <p className="boardview-status">This board doesn't have any lists yet.</p>
+                )}
               </div>
             </>
           )}
@@ -402,15 +434,28 @@ export default function BoardView() {
       {popup && popup.type === 'comments' && (
         <CommentsPopup
           card={popup.card}
+          canComment={perms.canEdit}
           onClose={() => setPopup(null)}
           onCommentAdded={handleCommentAdded}
         />
       )}
 
+      {popup && popup.type === 'share' && (
+        <ShareDialog
+          boardId={boardId}
+          boardName={board.name}
+          isAdmin={perms.isAdmin}
+          onClose={() => setPopup(null)}
+          onMyRoleChanged={refreshBoard}
+          onLeft={() => navigate('/dashboard')}
+        />
+      )}
+
       {popup && popup.type === 'editCard' && (
         <CreateItemPopup
-          heading="Edit card"
+          heading={perms.canEdit ? 'Edit card' : 'Card'}
           subheading={`Card in "${popup.listName}".`}
+          readOnly={!perms.canEdit}
           fields={cardFields}
           initialValues={{
             title: popup.card.title,

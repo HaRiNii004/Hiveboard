@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { login } from '../../api/auth';
 import HiveVisual from '../../components/HiveVisual/HiveVisual';
+import { getSafeRedirect, withRedirect } from '../../utils/redirect';
 import logo from '../../assets/logo.svg';
 import googleIcon from '../../assets/google.svg';
 import './Login.css';
@@ -16,6 +17,9 @@ export default function Login() {
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // e.g. back to /invite/<token> after logging in from an invite link
+  const redirect = getSafeRedirect(searchParams);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -40,7 +44,7 @@ export default function Login() {
         localStorage.removeItem('rememberEmail');
       }
 
-      navigate('/dashboard');
+      navigate(redirect || '/dashboard');
     } catch (err) {
       console.error(err);
       if (err.response && err.response.data && err.response.data.message) {
@@ -78,7 +82,7 @@ export default function Login() {
             {/* Auth Tab Switcher */}
             <div className="tab-switcher">
               <button className="tab-btn active">Log In</button>
-              <Link to="/signup" className="tab-btn inactive">Sign Up</Link>
+              <Link to={withRedirect('/signup', redirect)} className="tab-btn inactive">Sign Up</Link>
             </div>
 
             {/* Error Notification */}
@@ -156,7 +160,7 @@ export default function Login() {
 
             {/* Form Footer */}
             <p className="form-footer">
-              New to Hiveboard? <Link to="/signup">Sign up</Link>
+              New to Hiveboard? <Link to={withRedirect('/signup', redirect)}>Sign up</Link>
             </p>
 
           </div>

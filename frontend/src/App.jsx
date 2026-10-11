@@ -5,6 +5,7 @@ import Login from './pages/Login/Login';
 import Signup from './pages/Signup/Signup';
 import Dashboard from './pages/dashboard/Dashboard';
 import BoardView from './pages/boardview/BoardView';
+import InvitePage from './pages/invite/InvitePage';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/boards/:boardId" element={<BoardView />} />
+        <Route path="/invite/:token" element={<InvitePage />} />
       </Routes>
     </BrowserRouter>
   );
