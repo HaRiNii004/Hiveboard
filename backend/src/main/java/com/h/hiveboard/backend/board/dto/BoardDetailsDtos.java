@@ -16,7 +16,8 @@ import java.util.UUID;
 public class BoardDetailsDtos {
 
     public record CardResponse(UUID id, String title, String description, Double position,
-                               List<LabelResponse> labels, LocalDate dueDate, LocalTime dueTime) {
+                               List<LabelResponse> labels, LocalDate dueDate, LocalTime dueTime,
+                               int commentCount) {
         // Shared by BoardService, BoardListService and CardService so the
         // card shape (including its labels, oldest first) is built in one place.
         public static CardResponse from(Card card) {
@@ -26,7 +27,7 @@ public class BoardDetailsDtos {
                     .map(LabelResponse::from)
                     .toList();
             return new CardResponse(card.getId(), card.getTitle(), card.getDescription(), card.getPosition(),
-                    labels, card.getDueDate(), card.getDueTime());
+                    labels, card.getDueDate(), card.getDueTime(), card.getComments().size());
         }
     }
 

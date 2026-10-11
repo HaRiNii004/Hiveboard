@@ -217,9 +217,43 @@
   gap: 4px;
 }
 
+/* Bottom row of a card: due date, description marker, comments button */
+.list-card-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.list-card-comments-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.list-card-comments-btn.has-comments {
+  color: var(--color-text-body);
+}
+
+.list-card-comments-btn:hover,
+.list-card-comments-btn:focus-visible {
+  color: var(--board-accent, var(--color-primary));
+  background-color: rgba(242, 143, 15, 0.1);
+}
+
 /* Due date badge: grey normally, orange for today/tomorrow, red once overdue */
 .list-card-due {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 4px;

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import LabelSelect from '../../components/LabelSelect/LabelSelect';
 import LabelChip from '../../components/LabelSelect/LabelChip';
 import DueDatePicker from '../../components/DueDatePicker/DueDatePicker';
 import CreateItemPopup from './CreateItemPopup';
+import CommentsPopup from './CommentsPopup';
 import { getBoardDetail, updateLabelsTitle } from '../../api/boards';
 import { createLabel, updateLabel, deleteLabel } from '../../api/labels';
 import { createList, updateList } from '../../api/lists';
@@ -69,6 +70,7 @@ export default function BoardView() {
   const [result, setResult] = useState(null);
   // null | { type: 'list' } | { type: 'editList', list }
   //      | { type: 'card', listId, listName } | { type: 'editCard', listId, listName, card }
+  //      | { type: 'comments', listId, card }
   const [popup, setPopup] = useState(null);
 
   const loading = !result || result.boardId !== boardId;
@@ -121,6 +123,20 @@ export default function BoardView() {
     const response = await createCard(listId, title, description, labelIds, dueDate, dueTime);
     setList(listId, list => ({ ...list, cards: [...list.cards, response.data] }));
     setPopup(null);
+  };
+
+  const openComments = (e, list, card) => {
+    e.stopPropagation(); // don't also open the edit popup
+    setPopup({ type: 'comments', listId: list.id, card });
+  };
+
+  // Keep the card's comment count in step with the popup
+  const handleCommentAdded = () => {
+    const { listId, card } = popup;
+    setList(listId, list => ({
+      ...list,
+      cards: list.cards.map(c => (c.id === card.id ? { ...c, commentCount: (c.commentCount || 0) + 1 } : c))
+    }));
   };
 
   const openEditCard = (list, card) => {
@@ -290,21 +306,38 @@ export default function BoardView() {
                                 ))}
                               </div>
                             )}
-                            {card.dueDate && (() => {
-                              const due = getDueDateInfo(card.dueDate, card.dueTime);
-                              return (
-                                <span className={`list-card-due ${due.status}`} title={due.tooltip}>
-                                  <Calendar size={12} />
-                                  {due.text}
+                            <div className="list-card-footer">
+                              {card.dueDate && (() => {
+                                const due = getDueDateInfo(card.dueDate, card.dueTime);
+                                return (
+                                  <span className={`list-card-due ${due.status}`} title={due.tooltip}>
+                                    <Calendar size={12} />
+                                    {due.text}
+                                  </span>
+                                );
+                              })()}
+                              {card.description && (
+                                <span className="list-card-has-description" title="This card has a description">
+                                  <AlignLeft size={14} />
                                 </span>
-                              );
-                            })()}
+                              )}
+                              <button
+                                type="button"
+                                className={`list-card-comments-btn ${card.commentCount > 0 ? 'has-comments' : ''}`}
+                                onClick={(e) => openComments(e, list, card)}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                aria-label={
+                                  card.commentCount > 0
+                                    ? `${card.commentCount} comments on ${card.title}`
+                                    : `Comment on ${card.title}`
+                                }
+                                title="Comments"
+                              >
+                                <MessageSquare size={14} />
+                                {card.commentCount > 0 && <span>{card.commentCount}</span>}
+                              </button>
+                            </div>
                           </div>
-                          {card.description && (
-                            <span className="list-card-has-description" title="This card has a description">
-                              <AlignLeft size={14} />
-                            </span>
-                          )}
                         </article>
                       ))}
                       {list.cards.length === 0 && <p className="board-list-empty">No cards yet</p>}
@@ -363,6 +396,14 @@ export default function BoardView() {
           submitLabel="Add Card"
           onSubmit={handleCreateCard}
           onClose={() => setPopup(null)}
+        />
+      )}
+
+      {popup && popup.type === 'comments' && (
+        <CommentsPopup
+          card={popup.card}
+          onClose={() => setPopup(null)}
+          onCommentAdded={handleCommentAdded}
         />
       )}
 

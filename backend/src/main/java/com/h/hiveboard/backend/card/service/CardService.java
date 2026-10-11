@@ -143,7 +143,8 @@ public class CardService {
         }
     }
 
-    private Card getOwnedCard(UUID cardId, User user) {
+    // Public so CommentService can reuse this same ownership check.
+    public Card getOwnedCard(UUID cardId, User user) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new ResourceNotFoundException("No card with id " + cardId));
 
