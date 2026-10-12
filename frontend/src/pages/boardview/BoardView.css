@@ -156,8 +156,10 @@
   color: var(--color-text-muted);
 }
 
-/* Lists row: scrolls sideways when there are many lists */
+/* Lists row: scrolls sideways when there are many lists.
+   position: relative so live cursors are placed in board-content coordinates. */
 .boardview-lists {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 20px;
@@ -279,8 +281,151 @@
   gap: 6px;
 }
 
-.list-card-comments-btn {
+/* Drag and drop */
+.list-card.draggable {
+  touch-action: manipulation;
+}
+
+/* The card's original spot while it's being dragged (the card itself follows the pointer) */
+.list-card.dragging {
+  opacity: 0.35;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+/* The floating card under the pointer */
+.list-card-overlay {
+  cursor: grabbing;
+  transform: rotate(2deg);
+}
+
+.list-card-overlay .list-card {
+  border-color: var(--board-accent, var(--color-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+/* A list being dragged over */
+.board-list-cards.drop-target {
+  background-color: rgba(242, 143, 15, 0.06);
+  border-radius: var(--radius-md);
+}
+
+/* Empty lists still need room to drop into */
+.board-list-cards {
+  min-height: 48px;
+}
+
+.list-card-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 2px;
+  color: var(--color-text-muted);
+  cursor: grab;
+  opacity: 0.55;
+  /* lets touch users drag by the handle while the list itself still scrolls */
+  touch-action: none;
+  transition: var(--transition-fast);
+}
+
+.list-card:hover .list-card-drag-handle,
+.list-card-drag-handle:focus-visible {
+  opacity: 1;
+}
+
+.list-card-drag-handle:hover,
+.list-card-drag-handle:focus-visible {
+  color: var(--board-accent, var(--color-primary));
+  background-color: rgba(242, 143, 15, 0.1);
+}
+
+/* Right side of the card footer: flag, comments, assignee */
+.list-card-footer-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.list-card-flag-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.list-card-flag-btn:hover,
+.list-card-flag-btn:focus-visible {
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.08);
+}
+
+.list-card-flag-btn.flagged {
+  color: var(--color-error);
+}
+
+/* High-priority card: red edge + badge */
+.list-card.high-priority {
+  border-left: 4px solid var(--color-error);
+}
+
+.list-card-priority {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* "This card was deleted by …" when someone else deletes what you had open */
+.boardview-live-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--color-text-brand);
+  background-color: var(--color-primary-light);
+  border: 1px solid #fcd299;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.boardview-live-notice button {
+  display: flex;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 2px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.boardview-inline-error {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.08);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.list-card-comments-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -304,6 +449,22 @@
 .list-card-comments-btn:focus-visible {
   color: var(--board-accent, var(--color-primary));
   background-color: rgba(242, 143, 15, 0.1);
+}
+
+/* Assignee initials on a card */
+.list-card-assignee {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--board-accent, var(--color-primary));
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
 /* Due date badge: grey normally, orange for today/tomorrow, red once overdue */

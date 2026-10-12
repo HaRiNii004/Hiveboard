@@ -1,0 +1,110 @@
+.notif-toasts {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.notif-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 10px 12px 12px;
+  background-color: #ffffff;
+  border: 1px solid #f7e6d2;
+  border-left: 4px solid var(--toast-accent, var(--color-primary));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: notifToastIn var(--transition-spring);
+}
+
+.notif-toast-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--toast-accent, var(--color-primary));
+  background-color: var(--toast-soft, var(--color-primary-light));
+}
+
+.notif-toast-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.notif-toast-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.notif-toast-message {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-brand);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-toast-close {
+  flex-shrink: 0;
+  display: flex;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 3px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.notif-toast-close:hover,
+.notif-toast-close:focus-visible {
+  color: var(--color-text-brand);
+  background-color: var(--color-primary-light);
+}
+
+/* Accent colour per kind of notification */
+.tone-honey { --toast-accent: var(--color-primary); --toast-soft: var(--color-primary-light); }
+.tone-red   { --toast-accent: var(--color-error);   --toast-soft: rgba(230, 57, 70, 0.1); }
+.tone-blue  { --toast-accent: #1e88e5;              --toast-soft: #e3f2fd; }
+.tone-green { --toast-accent: #43a047;              --toast-soft: #e8f5e9; }
+.tone-gray  { --toast-accent: #8a7c70;              --toast-soft: #f3efea; }
+
+@keyframes notifToastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-toast {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .notif-toasts {
+    right: 16px;
+    bottom: 16px;
+  }
+}

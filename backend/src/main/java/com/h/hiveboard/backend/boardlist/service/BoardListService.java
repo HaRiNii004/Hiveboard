@@ -12,6 +12,11 @@ import com.h.hiveboard.backend.card.entity.Card;
 import com.h.hiveboard.backend.boardlist.repository.BoardListRepository;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
+import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.ListPayload;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.ListRenamedPayload;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.ListDeletedPayload;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.ListsReorderedPayload;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +33,7 @@ public class BoardListService {
 
     private final BoardListRepository boardListRepository;
     private final BoardAccessService boardAccessService; // role checks
+    private final BoardEventPublisher boardEventPublisher;
 
     @Transactional
     public ListResponse createList(UUID boardId, User user, CreateListRequest request) {
@@ -41,7 +47,9 @@ public class BoardListService {
                 .build();
 
         boardListRepository.save(list);
-        return toResponse(list);
+        ListResponse response = toResponse(list);
+        boardEventPublisher.publish(board.getId(), "LIST_CREATED", user, new ListPayload(response));
+        return response;
     }
 
     @Transactional
@@ -49,6 +57,8 @@ public class BoardListService {
         BoardList list = getListForRole(listId, user, BoardRole.MEMBER);
         list.setName(request.name());
         boardListRepository.save(list);
+        boardEventPublisher.publish(list.getBoard().getId(), "LIST_UPDATED", user,
+                new ListRenamedPayload(list.getId(), list.getName()));
         return toResponse(list);
     }
 
@@ -76,12 +86,15 @@ public class BoardListService {
             list.setPosition((double) i);
         }
         boardListRepository.saveAll(byId.values());
+        boardEventPublisher.publish(board.getId(), "LISTS_REORDERED", user, new ListsReorderedPayload(orderedIds));
     }
 
     @Transactional
     public void deleteList(UUID listId, User user) {
         BoardList list = getListForRole(listId, user, BoardRole.MEMBER);
+        UUID boardId = list.getBoard().getId();
         boardListRepository.delete(list);
+        boardEventPublisher.publish(boardId, "LIST_DELETED", user, new ListDeletedPayload(listId));
     }
 
     // Finds a list and checks the caller's role on its board (404 for non-members).
@@ -95,9 +108,6 @@ public class BoardListService {
     }
 
     private ListResponse toResponse(BoardList list) {
-        List<CardResponse> cards = list.getCards().stream()
-                .map(CardResponse::from)
-                .toList();
-        return new ListResponse(list.getId(), list.getName(), list.getPosition(), cards);
+        return ListResponse.from(list, false);
     }
 }

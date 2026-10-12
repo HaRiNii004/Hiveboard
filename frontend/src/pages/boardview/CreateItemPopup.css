@@ -204,3 +204,14 @@
     width: 100%;
   }
 }
+
+/* Extra action on the left of the buttons (e.g. "Duplicate") */
+.item-popup-actions-extra {
+  margin-right: auto;
+}
+
+.item-popup-duplicate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

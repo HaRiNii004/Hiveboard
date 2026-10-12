@@ -29,7 +29,9 @@ const fetchComments = (cardId) => {
 // Add a comment to a card, with every comment listed below (newest first).
 // Each comment can have replies (one level: replying to a reply joins the same thread).
 // Viewers (canComment = false) can read comments and replies but not post.
-export default function CommentsPopup({ card, canComment = true, onClose, onCommentAdded }) {
+// refreshKey: bump it to reload (e.g. someone else commented while this is open).
+// onCommentAdded(totalCount) reports the new total so the card's count stays exact.
+export default function CommentsPopup({ card, canComment = true, refreshKey = 0, onClose, onCommentAdded }) {
   const [result, setResult] = useState(null); // null while loading
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -49,7 +51,7 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
     return () => {
       cancelled = true;
     };
-  }, [card.id]);
+  }, [card.id, refreshKey]);
 
   // Close on Escape (but not while a comment is being posted)
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
       const response = await addComment(card.id, trimmed);
       setResult(prev => (prev ? { ...prev, comments: [response.data, ...prev.comments] } : prev));
       setText('');
-      onCommentAdded(response.data);
+      onCommentAdded(totalCount + 1);
     } catch (err) {
       console.error(err);
       setPostError(getApiErrorMessage(err, 'Could not add your comment. Please try again.'));
@@ -119,7 +121,7 @@ export default function CommentsPopup({ card, canComment = true, onClose, onComm
         )
       } : prev));
       cancelReply();
-      onCommentAdded(reply);
+      onCommentAdded(totalCount + 1);
     } catch (err) {
       console.error(err);
       setReplyError(getApiErrorMessage(err, 'Could not add your reply. Please try again.'));

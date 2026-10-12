@@ -1,5 +1,6 @@
 package com.h.hiveboard.backend.card.entity;
 
+import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.boardlist.entity.BoardList;
 import com.h.hiveboard.backend.comment.entity.Comment;
 import com.h.hiveboard.backend.label.entity.Label;
@@ -45,6 +46,40 @@ public class Card {
 
     // Optional time on the due day, e.g. 14:30 (only set together with dueDate).
     private LocalTime dueTime;
+
+    // Who the card's task is assigned to (a member of the board), if anyone.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+
+    // Set automatically to whoever last set or changed the assignee.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_by_id")
+    private User assignedBy;
+
+    private Instant assignedAt;
+
+    // Flagged cards are shown at the top of their list (see CardResponse.inDisplayOrder).
+    // The column default lets Hibernate add it to existing rows.
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean highPriority = false;
+
+    // When it was flagged: the most recently flagged card goes first.
+    private Instant flaggedAt;
+
+    // When true, members with the VIEWER role can't see this card at all
+    // (left out of the board and 404 on direct access).
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean hiddenFromViewers = false;
+
+    // Optimistic locking: bumped on every save. Clients send back the version they
+    // loaded, so a stale edit gets a 409 instead of silently overwriting someone else.
+    // The column default lets Hibernate add it to existing rows.
+    @Version
+    @Column(columnDefinition = "bigint default 0")
+    private Long version;
 
     @Column(nullable = false)
     private Double position;

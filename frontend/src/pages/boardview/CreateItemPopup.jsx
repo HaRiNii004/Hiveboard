@@ -12,6 +12,7 @@ import './CreateItemPopup.css';
 // and keeps a non-string value (e.g. an array of label ids), starting from `defaultValue`.
 // `initialValues` pre-fills the inputs when editing.
 // `readOnly` shows the values without letting them change (e.g. for board Viewers).
+// `extraActions` is shown on the left of the buttons (e.g. "Duplicate").
 // `onSubmit(values)` must return a promise; if it rejects, the error is shown in the popup.
 export default function CreateItemPopup({
   heading,
@@ -21,6 +22,7 @@ export default function CreateItemPopup({
   submitLabel,
   submittingLabel = 'Creating...',
   readOnly = false,
+  extraActions = null,
   onSubmit,
   onClose
 }) {
@@ -158,6 +160,7 @@ export default function CreateItemPopup({
 
           {/* Actions */}
           <div className="item-popup-actions">
+            {extraActions && <div className="item-popup-actions-extra">{extraActions}</div>}
             {readOnly ? (
               <button type="button" className="item-popup-btn secondary" onClick={onClose}>
                 Close

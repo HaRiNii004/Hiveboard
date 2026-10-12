@@ -15,6 +15,10 @@ import com.h.hiveboard.backend.member.entity.BoardMember;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
+import com.h.hiveboard.backend.notification.service.NotificationService;
+import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.MemberPayload;
+import com.h.hiveboard.backend.member.dto.MemberDtos.MemberResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +49,8 @@ public class InvitationService {
     private final InvitationRepository invitationRepository;
     private final BoardMemberRepository boardMemberRepository;
     private final BoardAccessService boardAccessService;
+    private final NotificationService notificationService;
+    private final BoardEventPublisher boardEventPublisher;
 
     // Where the frontend lives, for building invite links.
     @Value("${app.frontend-url:http://localhost:5173}")
@@ -158,8 +164,12 @@ public class InvitationService {
         }
 
         // Already a member some other way: keep their current role
-        BoardMember member = membership.orElseGet(
-                () -> boardAccessService.addMember(invitation.getBoard(), user, invitation.getRole()));
+        BoardMember member = membership.orElseGet(() -> {
+            BoardMember joined = boardAccessService.addMember(invitation.getBoard(), user, invitation.getRole());
+            notificationService.memberJoined(invitation.getBoard(), user);
+            boardEventPublisher.publish(boardId, "MEMBER_ADDED", user, new MemberPayload(MemberResponse.from(joined)));
+            return joined;
+        });
 
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitation.setAcceptedAt(Instant.now());

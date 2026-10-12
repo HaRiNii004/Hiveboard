@@ -1,9 +1,11 @@
 package com.h.hiveboard.backend.config;
 
+import com.h.hiveboard.backend.exception.ConflictException;
 import com.h.hiveboard.backend.exception.ForbiddenOperationException;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -42,6 +44,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleUnreadableBody() {
         return ResponseEntity.badRequest().body(Map.of("error", "Request body is malformed or has an invalid value"));
+    }
+
+    // Someone else changed it first: stale version sent by the client, or two saves racing
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, String>> handleConflict(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, String>> handleOptimisticLock() {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Someone else changed this at the same time. Reload and try again."));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)

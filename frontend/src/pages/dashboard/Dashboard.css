@@ -39,6 +39,36 @@
   -webkit-mask-image: radial-gradient(circle at top right, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 80%);
 }
 
+/* "You were removed from …" / "… was deleted" */
+.dashboard-notice {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 720px;
+  margin: -24px 0 28px;
+  font-size: 14px;
+  color: var(--color-text-brand);
+  background-color: #ffffff;
+  border: 1px solid #fcd299;
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-notice button {
+  display: flex;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 2px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
 /* Welcome Banner */
 .welcome-banner {
   margin-bottom: 40px;

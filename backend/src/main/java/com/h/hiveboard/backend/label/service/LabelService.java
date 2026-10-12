@@ -4,6 +4,9 @@ import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.board.entity.Board;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
+import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.LabelPayload;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.LabelDeletedPayload;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import com.h.hiveboard.backend.label.dto.LabelDtos.CreateLabelRequest;
 import com.h.hiveboard.backend.label.dto.LabelDtos.LabelResponse;
@@ -26,6 +29,7 @@ public class LabelService {
 
     private final LabelRepository labelRepository;
     private final BoardAccessService boardAccessService; // role checks
+    private final BoardEventPublisher boardEventPublisher;
 
     @Transactional(readOnly = true)
     public List<LabelResponse> getLabels(UUID boardId, User user) {
@@ -52,7 +56,9 @@ public class LabelService {
                 .build();
 
         labelRepository.save(label);
-        return LabelResponse.from(label);
+        LabelResponse response = LabelResponse.from(label);
+        boardEventPublisher.publish(board.getId(), "LABEL_CREATED", user, new LabelPayload(response));
+        return response;
     }
 
     @Transactional
@@ -67,14 +73,18 @@ public class LabelService {
         label.setName(name);
         label.setColor(request.color());
         labelRepository.save(label);
-        return LabelResponse.from(label);
+        LabelResponse response = LabelResponse.from(label);
+        boardEventPublisher.publish(label.getBoard().getId(), "LABEL_UPDATED", user, new LabelPayload(response));
+        return response;
     }
 
     @Transactional
     public void deleteLabel(UUID labelId, User user) {
         Label label = getLabelForMember(labelId, user);
+        UUID boardId = label.getBoard().getId();
         labelRepository.deleteCardAssignments(label.getId());
         labelRepository.delete(label);
+        boardEventPublisher.publish(boardId, "LABEL_DELETED", user, new LabelDeletedPayload(labelId));
     }
 
     // Used by CardService: turns the label ids sent with a card into entities,

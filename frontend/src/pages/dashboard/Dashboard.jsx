@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Star, ChevronDown, Grid, List as ListIcon, Plus, User, Calendar, Pencil } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Star, ChevronDown, Grid, List as ListIcon, Plus, User, Calendar, Pencil, X } from 'lucide-react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import Bee from '../../components/Bee/Bee';
@@ -8,6 +8,7 @@ import CreatePopup from './CreatePopup/CreatePopup';
 import { getBoards } from '../../api/boards';
 import { getColorScheme } from '../../utils/boardColors';
 import { roleLabel } from '../../utils/boardPermissions';
+import { useRealtime } from '../../components/Realtime/useRealtime';
 import './Dashboard.css';
 
 const formatCreatedDate = (createdAt) => {
@@ -47,6 +48,9 @@ const fetchBoards = () => {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // e.g. "Alice removed you from Team." after being sent here from a board
+  const [notice, setNotice] = useState(location.state ? location.state.notice : null);
   const [boards, setBoards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -85,6 +89,43 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, []);
+
+  // Live updates for every board I'm on
+  const { subscribe, connectionCount } = useRealtime();
+  useEffect(() => subscribe('/user/queue/boards', event => {
+    const p = event.payload || {};
+    switch (event.type) {
+      case 'BOARD_UPDATED':
+        setBoards(prev => prev.map(b =>
+          b.id === event.boardId ? { ...b, name: p.name, description: p.description } : b));
+        break;
+      case 'BOARD_DELETED':
+        setBoards(prev => prev.filter(b => b.id !== event.boardId));
+        break;
+      case 'MEMBER_ADDED':
+      case 'MEMBER_REMOVED':
+      case 'MEMBER_ROLE_CHANGED':
+        // Could be about me (shared, removed, role badge): quietly reload the list
+        fetchBoards().then(result => {
+          if (!result.error) setBoards(result.boards);
+        });
+        break;
+      default:
+        break;
+    }
+  }), [subscribe]);
+
+  // Resync after a reconnect (events missed while offline are gone)
+  const syncedCount = useRef(null);
+  useEffect(() => {
+    if (connectionCount === 0) return;
+    if (syncedCount.current !== null && syncedCount.current !== connectionCount) {
+      fetchBoards().then(result => {
+        if (!result.error) setBoards(result.boards);
+      });
+    }
+    syncedCount.current = connectionCount;
+  }, [connectionCount]);
 
   const handleRetry = () => {
     setLoading(true);
@@ -177,6 +218,15 @@ export default function Dashboard() {
             </h1>
             <p className="welcome-subtitle">Here's what's happening in your workspace.</p>
           </div>
+
+          {notice && (
+            <div className="dashboard-notice" role="status">
+              <span>{notice}</span>
+              <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           {/* All Boards Section */}
           <section className="boards-section">

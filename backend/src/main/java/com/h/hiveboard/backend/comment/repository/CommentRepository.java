@@ -14,4 +14,6 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     // included; CommentService arranges them into threads.
     @EntityGraph(attributePaths = "author")
     List<Comment> findByCardIdOrderByCreatedAtAsc(UUID cardId);
+
+    long countByCardId(UUID cardId);
 }

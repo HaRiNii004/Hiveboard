@@ -4,6 +4,7 @@ import com.h.hiveboard.backend.board.dto.BoardDetailsDtos.CardResponse;
 import com.h.hiveboard.backend.card.dto.CardDtos.CreateCardRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.UpdateCardRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.MoveCardRequest;
+import com.h.hiveboard.backend.card.dto.CardDtos.SetPriorityRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.ReorderCardsRequest;
 import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.card.service.CardService;
@@ -44,11 +45,25 @@ public class CardController {
     }
 
     // Dragging a card into a different column.
+    // Copy a card (placed right below the original)
+    @PostMapping("/api/cards/{cardId}/duplicate")
+    public ResponseEntity<CardResponse> duplicate(@AuthenticationPrincipal User user, @PathVariable UUID cardId) {
+        return ResponseEntity.ok(cardService.duplicateCard(cardId, user));
+    }
+
     @PatchMapping("/api/cards/{cardId}/move")
     public ResponseEntity<CardResponse> move(@AuthenticationPrincipal User user,
                                              @PathVariable UUID cardId,
                                              @Valid @RequestBody MoveCardRequest request) {
         return ResponseEntity.ok(cardService.moveCard(cardId, user, request));
+    }
+
+    // Flag / unflag as high priority
+    @PatchMapping("/api/cards/{cardId}/priority")
+    public ResponseEntity<CardResponse> setPriority(@AuthenticationPrincipal User user,
+                                                    @PathVariable UUID cardId,
+                                                    @Valid @RequestBody SetPriorityRequest request) {
+        return ResponseEntity.ok(cardService.setPriority(cardId, user, request));
     }
 
     @DeleteMapping("/api/cards/{cardId}")

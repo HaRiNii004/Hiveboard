@@ -10,6 +10,7 @@ import com.h.hiveboard.backend.board.dto.BoardDetailsDtos.ListResponse;
 import com.h.hiveboard.backend.board.dto.BoardDetailsDtos.CardResponse;
 import com.h.hiveboard.backend.board.entity.Board;
 import com.h.hiveboard.backend.boardlist.entity.BoardList;
+import com.h.hiveboard.backend.card.entity.Card;
 import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.board.repository.BoardRepository;
 import com.h.hiveboard.backend.label.dto.LabelDtos.LabelResponse;
@@ -17,6 +18,9 @@ import com.h.hiveboard.backend.member.entity.BoardMember;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
+import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.BoardUpdatedPayload;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.BoardDeletedPayload;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,7 @@ public class BoardService {
     private final BoardRepository boardRepository;
     private final BoardMemberRepository boardMemberRepository;
     private final BoardAccessService boardAccessService;
+    private final BoardEventPublisher boardEventPublisher;
 
     // The creator becomes the board's first ADMIN; `owner` is kept as "created by".
     @Transactional
@@ -66,8 +71,9 @@ public class BoardService {
         BoardMember membership = boardAccessService.requireMembership(boardId, user, BoardRole.VIEWER);
         Board board = membership.getBoard();
 
+        boolean isViewer = membership.getRole() == BoardRole.VIEWER;
         List<ListResponse> lists = board.getLists().stream()
-                .map(this::toListResponse)
+                .map(list -> toListResponse(list, isViewer))
                 .toList();
 
         List<LabelResponse> labels = board.getLabels().stream()
@@ -84,6 +90,7 @@ public class BoardService {
         Board board = boardAccessService.requireRole(boardId, user, BoardRole.MEMBER);
         board.setLabelsTitle(request.labelsTitle().trim());
         boardRepository.save(board);
+        publishBoardUpdated(board, user);
         return new LabelsTitleResponse(labelsTitleOf(board));
     }
 
@@ -93,6 +100,7 @@ public class BoardService {
         board.setName(request.name());
         board.setDescription(request.description());
         boardRepository.save(board);
+        publishBoardUpdated(board, user);
         return toSummary(board, BoardRole.ADMIN, user);
     }
 
@@ -100,7 +108,14 @@ public class BoardService {
     @Transactional
     public void deleteBoard(UUID boardId, User user) {
         Board board = boardAccessService.requireRole(boardId, user, BoardRole.ADMIN);
+        // Publish first: it snapshots the members, whose rows are deleted with the board
+        boardEventPublisher.publish(boardId, "BOARD_DELETED", user, new BoardDeletedPayload(boardId));
         boardRepository.delete(board);
+    }
+
+    private void publishBoardUpdated(Board board, User actor) {
+        boardEventPublisher.publish(board.getId(), "BOARD_UPDATED", actor,
+                new BoardUpdatedPayload(board.getName(), board.getDescription(), labelsTitleOf(board)));
     }
 
     private String labelsTitleOf(Board board) {
@@ -113,10 +128,8 @@ public class BoardService {
                 myRole, board.getOwner().getId().equals(me.getId()));
     }
 
-    private ListResponse toListResponse(BoardList list) {
-        List<CardResponse> cards = list.getCards().stream()
-                .map(CardResponse::from)
-                .toList();
-        return new ListResponse(list.getId(), list.getName(), list.getPosition(), cards);
+    // Cards hidden from viewers are left out entirely when the caller is a Viewer.
+    private ListResponse toListResponse(BoardList list, boolean forViewer) {
+        return ListResponse.from(list, forViewer);
     }
 }

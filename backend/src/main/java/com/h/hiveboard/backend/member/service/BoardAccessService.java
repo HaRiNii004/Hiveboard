@@ -28,15 +28,27 @@ public class BoardAccessService {
         BoardMember member = boardMemberRepository.findByBoardIdAndUserId(boardId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No board with id " + boardId));
 
+        requireRoleOf(member, required);
+        return member;
+    }
+
+    // 403 if this membership's role is below `required`.
+    public void requireRoleOf(BoardMember member, BoardRole required) {
         if (!member.getRole().isAtLeast(required)) {
             throw new ForbiddenOperationException(
                     "Your role on this board (" + member.getRole() + ") doesn't allow this");
         }
-        return member;
     }
 
     public Board requireRole(UUID boardId, User user, BoardRole required) {
         return requireMembership(boardId, user, required).getBoard();
+    }
+
+    // The user behind a membership, for assigning cards. Only board members can be assigned.
+    public User requireMemberUser(UUID boardId, Long userId) {
+        return boardMemberRepository.findByBoardIdAndUserId(boardId, userId)
+                .map(BoardMember::getUser)
+                .orElseThrow(() -> new IllegalArgumentException("Cards can only be assigned to members of this board"));
     }
 
     public BoardMember addMember(Board board, User user, BoardRole role) {

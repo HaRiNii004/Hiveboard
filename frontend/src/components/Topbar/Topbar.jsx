@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Bell, HelpCircle, ChevronDown } from 'lucide-react';
+import { Search, HelpCircle, ChevronDown } from 'lucide-react';
+import NotificationBell from '../Notifications/NotificationBell';
 import './Topbar.css';
 
 export default function Topbar({ showSearch = true }) {
@@ -46,10 +46,7 @@ export default function Topbar({ showSearch = true }) {
 
       {/* Right Quick Actions & User Profile */}
       <div className="topbar-actions">
-        <button className="action-btn notifications-btn" aria-label="Notifications">
-          <Bell size={20} />
-          <span className="notification-badge"></span>
-        </button>
+        <NotificationBell />
         
         <button className="action-btn help-btn" aria-label="Help">
           <HelpCircle size={20} />
