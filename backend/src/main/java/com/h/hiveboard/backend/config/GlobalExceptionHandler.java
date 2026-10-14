@@ -10,8 +10,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +46,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleUnreadableBody() {
         return ResponseEntity.badRequest().body(Map.of("error", "Request body is malformed or has an invalid value"));
+    }
+
+    // A required query parameter is missing, or can't be read (e.g. ?from=not-a-date)
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Map<String, String>> handleBadParameter(Exception ex) {
+        String name = ex instanceof MissingServletRequestParameterException missing
+                ? missing.getParameterName()
+                : ((MethodArgumentTypeMismatchException) ex).getName();
+        return ResponseEntity.badRequest().body(Map.of("error", "Missing or invalid parameter: " + name));
     }
 
     // Someone else changed it first: stale version sent by the client, or two saves racing

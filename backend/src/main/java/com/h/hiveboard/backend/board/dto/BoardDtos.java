@@ -2,6 +2,7 @@ package com.h.hiveboard.backend.board.dto;
 
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.UUID;
@@ -19,7 +20,11 @@ public class BoardDtos {
 
     // Lightweight shape for "my boards" list page. myRole/ownedByMe let the UI
     // badge boards shared with you ("Shared with you · Viewer").
+    // starred/starredAt are the caller's own star (stars are personal).
     public record BoardSummaryResponse(UUID id, String name, String description,
                                        String createdBy, Instant createdAt,
-                                       BoardRole myRole, boolean ownedByMe) {}
+                                       BoardRole myRole, boolean ownedByMe,
+                                       boolean starred, Instant starredAt) {}
+
+    public record StarBoardRequest(@NotNull Boolean starred) {}
 }

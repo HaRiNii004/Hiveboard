@@ -69,6 +69,22 @@
   cursor: pointer;
 }
 
+/* Search */
+.boards-search-count {
+  margin-left: 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.boards-no-results {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
 /* Welcome Banner */
 .welcome-banner {
   margin-bottom: 40px;

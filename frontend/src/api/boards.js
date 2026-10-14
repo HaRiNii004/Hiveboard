@@ -21,3 +21,8 @@ export const updateBoard = (boardId, name, description) => {
 export const updateLabelsTitle = (boardId, labelsTitle) => {
   return api.patch(`/boards/${boardId}/labels-title`, { labelsTitle });
 };
+
+// Your personal star (starred boards are listed on the Starred page)
+export const setBoardStarred = (boardId, starred) => {
+  return api.put(`/boards/${boardId}/star`, { starred });
+};

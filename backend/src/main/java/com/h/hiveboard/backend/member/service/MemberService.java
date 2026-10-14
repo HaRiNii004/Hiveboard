@@ -11,6 +11,7 @@ import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.notification.service.NotificationService;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
+import com.h.hiveboard.backend.todo.repository.TodoItemRepository;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.MemberPayload;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.MemberRemovedPayload;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class MemberService {
     private final CardRepository cardRepository;
     private final NotificationService notificationService;
     private final BoardEventPublisher boardEventPublisher;
+    private final TodoItemRepository todoItemRepository;
 
     @Transactional(readOnly = true)
     public List<MemberResponse> getMembers(UUID boardId, User user) {
@@ -74,6 +76,8 @@ public class MemberService {
         }
 
         cardRepository.unassignUserOnBoard(boardId, target.getUser().getId());
+        // Their personal tasks linked to this board stay, without the link
+        todoItemRepository.unlinkBoard(target.getUser().getId(), boardId);
         if (leaving) {
             notificationService.memberLeft(caller.getBoard(), user);
         } else {

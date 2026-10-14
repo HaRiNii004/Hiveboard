@@ -1,0 +1,207 @@
+/* Panel sliding in from the right, over the board */
+.board-tasks-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  background-color: rgba(60, 36, 21, 0.25);
+  animation: boardTasksFade var(--transition-smooth);
+}
+
+.board-tasks-panel {
+  width: min(420px, 100vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-left: 1px solid #f7e6d2;
+  box-shadow: var(--shadow-lg);
+  animation: boardTasksSlide var(--transition-smooth);
+}
+
+.board-tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 20px 14px;
+}
+
+.board-tasks-heading {
+  min-width: 0;
+}
+
+.board-tasks-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-brand);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+}
+
+.board-tasks-title svg {
+  color: var(--color-primary);
+}
+
+.board-tasks-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-tasks-close {
+  display: flex;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.board-tasks-close:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.board-tasks-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px;
+  padding: 4px 4px 4px 12px;
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+}
+
+.board-tasks-add:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(242, 143, 15, 0.12);
+}
+
+.board-tasks-add-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.board-tasks-add-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text-body);
+  padding: 8px 0;
+}
+
+.board-tasks-add-btn {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.board-tasks-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.board-tasks-error {
+  margin: 10px 20px 0;
+  font-size: 13px;
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.08);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+}
+
+.board-tasks-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 12px 8px;
+}
+
+.board-tasks-section {
+  margin: 14px 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.board-tasks-status {
+  padding: 16px 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.board-tasks-status.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-error);
+}
+
+.board-tasks-link-btn {
+  background: none;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.board-tasks-footer {
+  padding: 12px 20px 18px;
+  border-top: 1px solid #f7e6d2;
+}
+
+.board-tasks-open-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}
+
+.board-tasks-open-all:hover {
+  text-decoration: underline;
+}
+
+@keyframes boardTasksFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes boardTasksSlide {
+  from { transform: translateX(24px); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-tasks-overlay,
+  .board-tasks-panel {
+    animation: none;
+  }
+}

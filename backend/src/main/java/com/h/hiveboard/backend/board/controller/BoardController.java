@@ -2,6 +2,7 @@ package com.h.hiveboard.backend.board.controller;
 
 import com.h.hiveboard.backend.board.dto.BoardDtos.CreateBoardRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateBoardRequest;
+import com.h.hiveboard.backend.board.dto.BoardDtos.StarBoardRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateLabelsTitleRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.LabelsTitleResponse;
 import com.h.hiveboard.backend.board.dto.BoardDtos.BoardSummaryResponse;
@@ -54,6 +55,14 @@ public class BoardController {
                                                                  @PathVariable UUID boardId,
                                                                  @Valid @RequestBody UpdateLabelsTitleRequest request) {
         return ResponseEntity.ok(boardService.updateLabelsTitle(boardId, user, request));
+    }
+
+    // Your personal star (shows the board on your Starred page)
+    @PutMapping("/{boardId}/star")
+    public ResponseEntity<BoardSummaryResponse> star(@AuthenticationPrincipal User user,
+                                                     @PathVariable UUID boardId,
+                                                     @Valid @RequestBody StarBoardRequest request) {
+        return ResponseEntity.ok(boardService.setStarred(boardId, user, request));
     }
 
     @DeleteMapping("/{boardId}")

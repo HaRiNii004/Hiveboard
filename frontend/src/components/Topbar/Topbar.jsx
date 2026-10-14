@@ -1,8 +1,41 @@
-import { Search, HelpCircle, ChevronDown } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Search, HelpCircle, ChevronDown, X } from 'lucide-react';
 import NotificationBell from '../Notifications/NotificationBell';
 import './Topbar.css';
 
-export default function Topbar({ showSearch = true }) {
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
+// searchValue / onSearchChange: the page owns the search text (the dashboard filters its boards)
+export default function Topbar({ showSearch = true, searchValue = '', onSearchChange }) {
+  const searchRef = useRef(null);
+
+  // Ctrl+K (⌘K on Mac) jumps to the search box from anywhere on the page
+  useEffect(() => {
+    if (!showSearch) return undefined;
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (searchRef.current) {
+          searchRef.current.focus();
+          searchRef.current.select();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showSearch]);
+
+  const handleSearchKeyDown = (e) => {
+    // Esc clears the search; a second Esc leaves the box
+    if (e.key === 'Escape') {
+      if (searchValue) {
+        onSearchChange && onSearchChange('');
+      } else {
+        e.currentTarget.blur();
+      }
+    }
+  };
+
   const storedUser = localStorage.getItem('user');
   let userName = 'Harini Selvaraj';
   
@@ -34,13 +67,34 @@ export default function Topbar({ showSearch = true }) {
         <div className="topbar-search">
           <Search className="search-icon" size={18} />
           <input
-            type="text"
+            ref={searchRef}
+            type="search"
             placeholder="Search boards..."
             className="search-input"
+            value={searchValue}
+            onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            aria-label="Search boards by name, description or creator"
+            autoComplete="off"
           />
-          <div className="search-shortcut">
-            <kbd className="shortcut-key">⌘K</kbd>
-          </div>
+          {searchValue ? (
+            <button
+              type="button"
+              className="search-clear"
+              onClick={() => {
+                onSearchChange && onSearchChange('');
+                if (searchRef.current) searchRef.current.focus();
+              }}
+              aria-label="Clear search"
+              title="Clear search (Esc)"
+            >
+              <X size={14} />
+            </button>
+          ) : (
+            <div className="search-shortcut" aria-hidden="true">
+              <kbd className="shortcut-key">{IS_MAC ? '⌘K' : 'Ctrl K'}</kbd>
+            </div>
+          )}
         </div>
       )}
 

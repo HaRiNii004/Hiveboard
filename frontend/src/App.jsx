@@ -6,6 +6,8 @@ import Signup from './pages/Signup/Signup';
 import Dashboard from './pages/dashboard/Dashboard';
 import BoardView from './pages/boardview/BoardView';
 import InvitePage from './pages/invite/InvitePage';
+import TasksPage from './pages/tasks/TasksPage';
+import CalendarPage from './pages/calendar/CalendarPage';
 import NotificationsProvider from './components/Notifications/NotificationsProvider';
 import RealtimeProvider from './components/Realtime/RealtimeProvider';
 
@@ -20,7 +22,10 @@ export default function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard key="all" />} />
+            <Route path="/starred" element={<Dashboard key="starred" view="starred" />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/boards/:boardId" element={<BoardView />} />
             <Route path="/invite/:token" element={<InvitePage />} />
           </Routes>

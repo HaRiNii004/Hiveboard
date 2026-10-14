@@ -2,6 +2,7 @@ package com.h.hiveboard.backend.board.service;
 
 import com.h.hiveboard.backend.board.dto.BoardDtos.CreateBoardRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateBoardRequest;
+import com.h.hiveboard.backend.board.dto.BoardDtos.StarBoardRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.UpdateLabelsTitleRequest;
 import com.h.hiveboard.backend.board.dto.BoardDtos.LabelsTitleResponse;
 import com.h.hiveboard.backend.board.dto.BoardDtos.BoardSummaryResponse;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +54,7 @@ public class BoardService {
 
         boardRepository.save(board);
         boardAccessService.addMember(board, owner, BoardRole.ADMIN);
-        return toSummary(board, BoardRole.ADMIN, owner);
+        return toSummary(board, BoardRole.ADMIN, owner, null);
     }
 
     // Every board I'm a member of — my own and ones shared with me — newest first.
@@ -62,7 +64,7 @@ public class BoardService {
                 .stream()
                 .sorted(Comparator.comparing((BoardMember m) -> m.getBoard().getCreatedAt(),
                         Comparator.nullsLast(Comparator.<Instant>naturalOrder())).reversed())
-                .map(m -> toSummary(m.getBoard(), m.getRole(), user))
+                .map(m -> toSummary(m.getBoard(), m.getRole(), user, m))
                 .toList();
     }
 
@@ -96,12 +98,26 @@ public class BoardService {
 
     @Transactional
     public BoardSummaryResponse updateBoard(UUID boardId, User user, UpdateBoardRequest request) {
-        Board board = boardAccessService.requireRole(boardId, user, BoardRole.ADMIN);
+        BoardMember membership = boardAccessService.requireMembership(boardId, user, BoardRole.ADMIN);
+        Board board = membership.getBoard();
         board.setName(request.name());
         board.setDescription(request.description());
         boardRepository.save(board);
         publishBoardUpdated(board, user);
-        return toSummary(board, BoardRole.ADMIN, user);
+        return toSummary(board, BoardRole.ADMIN, user, membership);
+    }
+
+    // Star / unstar a board for yourself. Any member may (viewers too): it only affects you.
+    @Transactional
+    public BoardSummaryResponse setStarred(UUID boardId, User user, StarBoardRequest request) {
+        BoardMember membership = boardAccessService.requireMembership(boardId, user, BoardRole.VIEWER);
+        boolean starred = request.starred();
+        if (starred != membership.isStarred()) {
+            membership.setStarred(starred);
+            membership.setStarredAt(starred ? Instant.now().truncatedTo(ChronoUnit.MICROS) : null);
+            boardMemberRepository.save(membership);
+        }
+        return toSummary(membership.getBoard(), membership.getRole(), user, membership);
     }
 
     // Cascades to lists, cards, comments, labels, memberships and invitations.
@@ -122,10 +138,13 @@ public class BoardService {
         return board.getLabelsTitle() != null ? board.getLabelsTitle() : DEFAULT_LABELS_TITLE;
     }
 
-    private BoardSummaryResponse toSummary(Board board, BoardRole myRole, User me) {
+    // `membership` is the caller's own (for their star); null for a brand-new board.
+    private BoardSummaryResponse toSummary(Board board, BoardRole myRole, User me, BoardMember membership) {
         return new BoardSummaryResponse(board.getId(), board.getName(), board.getDescription(),
                 board.getOwner().getFullName(), board.getCreatedAt(),
-                myRole, board.getOwner().getId().equals(me.getId()));
+                myRole, board.getOwner().getId().equals(me.getId()),
+                membership != null && membership.isStarred(),
+                membership != null ? membership.getStarredAt() : null);
     }
 
     // Cards hidden from viewers are left out entirely when the caller is a Viewer.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare, Users, Eye, Flag, X, GripVertical, Copy } from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare, Users, Eye, Flag, X, GripVertical, Copy, ListTodo } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, KeyboardSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import Sidebar from '../../components/Sidebar/Sidebar';
@@ -16,6 +16,7 @@ import CommentsPopup from './CommentsPopup';
 import ShareDialog from './ShareDialog';
 import SortableCard from './SortableCard';
 import ListDropZone from './ListDropZone';
+import BoardTasksPanel from './BoardTasksPanel';
 import { getBoardDetail, updateLabelsTitle } from '../../api/boards';
 import { getMembers } from '../../api/members';
 import { createLabel, updateLabel, deleteLabel } from '../../api/labels';
@@ -108,12 +109,15 @@ const currentUserEmail = () => {
 export default function BoardView() {
   const { boardId } = useParams();
   const navigate = useNavigate();
+  // Set when coming from the calendar: open that card's popup once the board loads
+  const location = useLocation();
+  const openCardId = location.state ? location.state.openCardId : null;
 
   // Result is tagged with the boardId it belongs to, so switching boards shows loading
   const [result, setResult] = useState(null);
   // null | { type: 'list' } | { type: 'editList', list }
   //      | { type: 'card', listId, listName } | { type: 'editCard', listId, listName, card }
-  //      | { type: 'comments', listId, card } | { type: 'share' }
+  //      | { type: 'comments', listId, card } | { type: 'share' } | { type: 'tasks' }
   const [popup, setPopup] = useState(null);
   const [priorityError, setPriorityError] = useState('');
   const [duplicating, setDuplicating] = useState(false);
@@ -151,12 +155,19 @@ export default function BoardView() {
   useEffect(() => {
     let cancelled = false;
     fetchBoard(boardId).then(res => {
-      if (!cancelled) setResult(res);
+      if (cancelled) return;
+      setResult(res);
+      const list = openCardId && res.board
+        ? res.board.lists.find(l => l.cards.some(c => c.id === openCardId))
+        : null;
+      if (list) {
+        setPopup({ type: 'editCard', listId: list.id, listName: list.name, card: list.cards.find(c => c.id === openCardId) });
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [boardId]);
+  }, [boardId, openCardId]);
 
   // Reload quietly (e.g. after my own role changed in the Share dialog)
   const refreshBoard = () => {
@@ -644,6 +655,14 @@ export default function BoardView() {
                     {!perms.canEdit && <Eye size={13} />}
                     {roleLabel(board.myRole)}
                   </span>
+                  <button
+                    className="boardview-share-btn"
+                    onClick={() => setPopup({ type: 'tasks' })}
+                    title="Your personal to-do list for this board (only you can see it)"
+                  >
+                    <ListTodo size={16} />
+                    My tasks
+                  </button>
                   <button className="boardview-share-btn" onClick={() => setPopup({ type: 'share' })}>
                     <Users size={16} />
                     {perms.isAdmin ? 'Share' : 'Members'}
@@ -796,6 +815,10 @@ export default function BoardView() {
           onClose={() => setPopup(null)}
           onCommentAdded={handleCommentAdded}
         />
+      )}
+
+      {popup && popup.type === 'tasks' && (
+        <BoardTasksPanel boardId={boardId} boardName={board.name} onClose={() => setPopup(null)} />
       )}
 
       {popup && popup.type === 'share' && (

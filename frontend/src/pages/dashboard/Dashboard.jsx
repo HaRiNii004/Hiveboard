@@ -5,10 +5,13 @@ import Sidebar from '../../components/Sidebar/Sidebar';
 import Topbar from '../../components/Topbar/Topbar';
 import Bee from '../../components/Bee/Bee';
 import CreatePopup from './CreatePopup/CreatePopup';
-import { getBoards } from '../../api/boards';
+import { getBoards, setBoardStarred } from '../../api/boards';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { getColorScheme } from '../../utils/boardColors';
 import { roleLabel } from '../../utils/boardPermissions';
 import { useRealtime } from '../../components/Realtime/useRealtime';
+import HighlightText from '../../components/HighlightText/HighlightText';
+import { searchWords, matchesBoard } from '../../utils/boardSearch';
 import './Dashboard.css';
 
 const formatCreatedDate = (createdAt) => {
@@ -29,8 +32,16 @@ const toBoard = (summary) => ({
   createdAt: summary.createdAt,
   myRole: summary.myRole,       // my role on this board: ADMIN | MEMBER | VIEWER
   ownedByMe: summary.ownedByMe, // false for boards shared with me
-  starred: false
+  starred: summary.starred,     // my own star (stars are personal)
+  starredAt: summary.starredAt
 });
+
+// Starred page: most recently starred first (a star still being saved counts as newest)
+const byStarredAtDesc = (a, b) => {
+  if (!a.starredAt) return -1;
+  if (!b.starredAt) return 1;
+  return new Date(b.starredAt) - new Date(a.starredAt);
+};
 
 // Resolves (never rejects) with the boards or an error message to show
 const fetchBoards = () => {
@@ -46,7 +57,9 @@ const fetchBoards = () => {
     });
 };
 
-export default function Dashboard() {
+// Also the Starred page: <Dashboard view="starred" /> shows only boards you've starred.
+export default function Dashboard({ view = 'all' }) {
+  const starredView = view === 'starred';
   const navigate = useNavigate();
   const location = useLocation();
   // e.g. "Alice removed you from Team." after being sent here from a board
@@ -58,6 +71,8 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [editingBoard, setEditingBoard] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [starError, setStarError] = useState('');
 
   const storedUser = localStorage.getItem('user');
   let userName = 'Harini Selvaraj';
@@ -73,6 +88,12 @@ export default function Dashboard() {
   }
 
   const firstName = userName.split(' ')[0];
+
+  // Search (in the browser: every board is already loaded)
+  const words = searchWords(searchQuery);
+  const searching = words.length > 0;
+  const baseBoards = starredView ? boards.filter(board => board.starred).sort(byStarredAtDesc) : boards;
+  const visibleBoards = baseBoards.filter(board => matchesBoard(board, words));
 
   const applyResult = (result) => {
     setBoards(result.boards);
@@ -132,9 +153,26 @@ export default function Dashboard() {
     fetchBoards().then(applyResult);
   };
 
-  const handleToggleStar = (boardId, e) => {
+  // Shown straight away, then saved; put back if saving fails
+  const handleToggleStar = async (boardId, e) => {
     e.stopPropagation();
-    setBoards(boards.map(b => b.id === boardId ? { ...b, starred: !b.starred } : b));
+    const board = boards.find(b => b.id === boardId);
+    if (!board) return;
+    const starred = !board.starred;
+    setStarError('');
+    setBoards(prev => prev.map(b => (b.id === boardId ? { ...b, starred, starredAt: null } : b)));
+    try {
+      const response = await setBoardStarred(boardId, starred);
+      setBoards(prev => prev.map(b => (b.id === boardId
+        ? { ...b, starred: response.data.starred, starredAt: response.data.starredAt }
+        : b)));
+    } catch (err) {
+      console.error(err);
+      setBoards(prev => prev.map(b => (b.id === boardId
+        ? { ...b, starred: board.starred, starredAt: board.starredAt }
+        : b)));
+      setStarError(getApiErrorMessage(err, 'Could not update the star. Please try again.'));
+    }
   };
 
   // Add the board returned by POST /api/boards to the top of the grid
@@ -160,7 +198,7 @@ export default function Dashboard() {
     <div className="dashboard-page">
       <Sidebar />
       <div className="dashboard-main-content">
-        <Topbar />
+        <Topbar searchValue={searchQuery} onSearchChange={setSearchQuery} />
 
         {/* Dashboard Content Panel */}
         <main className="dashboard-content-panel">
@@ -185,7 +223,7 @@ export default function Dashboard() {
           {/* Welcome greeting */}
           <div className="welcome-banner">
             <h1 className="welcome-title">
-              Welcome back, {firstName}!
+              {starredView ? 'Starred boards' : `Welcome back, ${firstName}!`}
               <svg className="welcome-bee" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <defs>
                   <clipPath id="welcome-bee-body">
@@ -216,8 +254,21 @@ export default function Dashboard() {
                 <circle cx="11" cy="13" r="1.6" fill="#3c2415" />
               </svg>
             </h1>
-            <p className="welcome-subtitle">Here's what's happening in your workspace.</p>
+            <p className="welcome-subtitle">
+              {starredView
+                ? 'The boards you\'ve starred, most recent first. Stars are just for you.'
+                : 'Here\'s what\'s happening in your workspace.'}
+            </p>
           </div>
+
+          {starError && (
+            <div className="dashboard-notice" role="alert">
+              <span>{starError}</span>
+              <button type="button" onClick={() => setStarError('')} aria-label="Dismiss">
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           {notice && (
             <div className="dashboard-notice" role="status">
@@ -231,7 +282,14 @@ export default function Dashboard() {
           {/* All Boards Section */}
           <section className="boards-section">
             <div className="boards-header">
-              <h2 className="section-title">All Boards</h2>
+              <h2 className="section-title">
+                {searching ? 'Search results' : starredView ? 'Starred' : 'All Boards'}
+                {searching && !loading && !error && (
+                  <span className="boards-search-count" aria-live="polite">
+                    {visibleBoards.length} of {baseBoards.length} {baseBoards.length === 1 ? 'board' : 'boards'}
+                  </span>
+                )}
+              </h2>
               
               <div className="boards-controls">
                 <div className="sort-dropdown">
@@ -265,31 +323,33 @@ export default function Dashboard() {
             <div className={`boards-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
               
               {/* Create Board Card */}
-              <div
-                className="board-card create-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => setShowCreatePopup(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setShowCreatePopup(true);
-                  }
-                }}
-              >
-                <div className="create-card-content">
-                  <div className="hexagon-btn">
-                    <svg className="hexagon-svg" viewBox="0 0 100 100">
-                      <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="#f28f0f" strokeWidth="4" />
-                    </svg>
-                    <Plus className="plus-icon" size={28} />
+              {!searching && !starredView && (
+                <div
+                  className="board-card create-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowCreatePopup(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowCreatePopup(true);
+                    }
+                  }}
+                >
+                  <div className="create-card-content">
+                    <div className="hexagon-btn">
+                      <svg className="hexagon-svg" viewBox="0 0 100 100">
+                        <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="#f28f0f" strokeWidth="4" />
+                      </svg>
+                      <Plus className="plus-icon" size={28} />
+                    </div>
+                    <span className="create-label">Create Board</span>
                   </div>
-                  <span className="create-label">Create Board</span>
                 </div>
-              </div>
+              )}
 
               {/* Boards loaded from GET /api/boards */}
-              {!loading && !error && boards.map(board => {
+              {!loading && !error && visibleBoards.map(board => {
                 const scheme = getColorScheme(board.id);
                 return (
                   <div
@@ -312,9 +372,11 @@ export default function Dashboard() {
                       {!board.ownedByMe && (
                         <span className="board-shared-badge">Shared with you · {roleLabel(board.myRole)}</span>
                       )}
-                      <h3 className="board-card-title" title={board.name}>{board.name}</h3>
+                      <h3 className="board-card-title" title={board.name}>
+                        <HighlightText text={board.name} words={words} />
+                      </h3>
                       <p className={`board-card-description ${board.description ? '' : 'empty'}`}>
-                        {board.description || 'No description'}
+                        {board.description ? <HighlightText text={board.description} words={words} /> : 'No description'}
                       </p>
                     </div>
 
@@ -367,8 +429,22 @@ export default function Dashboard() {
               </div>
             )}
 
-            {!loading && !error && boards.length === 0 && (
-              <p className="boards-status">No boards yet. Create your first board to get started!</p>
+            {!loading && !error && baseBoards.length === 0 && (
+              starredView ? (
+                <div className="boards-status boards-no-results">
+                  <span>No starred boards yet. Click the ☆ on any board to add it here.</span>
+                  <button className="boards-retry-btn" onClick={() => navigate('/dashboard')}>Go to all boards</button>
+                </div>
+              ) : (
+                <p className="boards-status">No boards yet. Create your first board to get started!</p>
+              )
+            )}
+
+            {!loading && !error && baseBoards.length > 0 && searching && visibleBoards.length === 0 && (
+              <div className="boards-status boards-no-results">
+                <span>No boards match "{searchQuery.trim()}".</span>
+                <button className="boards-retry-btn" onClick={() => setSearchQuery('')}>Clear search</button>
+              </div>
             )}
           </section>
 

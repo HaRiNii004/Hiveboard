@@ -1,0 +1,173 @@
+/* A to-do row (My Tasks page and the board's "My tasks" panel) */
+.todo-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.todo-main .todo-text {
+  flex: 0 1 auto;
+}
+
+.todo-board-chip {
+  flex-shrink: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--chip-text);
+  background-color: var(--chip-bg);
+  border: 1px solid var(--chip-accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.todo-board-chip:hover,
+.todo-board-chip:focus-visible {
+  text-decoration: underline;
+}
+
+.todo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.todo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  transition: background-color var(--transition-fast);
+}
+
+.todo-row:hover {
+  background-color: #fffaf3;
+}
+
+.todo-row.dragging {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-lg);
+  background-color: #ffffff;
+}
+
+.todo-grip {
+  flex-shrink: 0;
+  display: flex;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 2px;
+  color: var(--color-text-muted);
+  cursor: grab;
+  opacity: 0.4;
+  touch-action: none;
+}
+
+.todo-row:hover .todo-grip,
+.todo-grip:focus-visible {
+  opacity: 1;
+}
+
+.todo-check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #d8c7b5;
+  background-color: #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.todo-check:hover {
+  border-color: var(--color-primary);
+}
+
+.todo-check.checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.todo-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--color-text-brand);
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.todo-row.done .todo-text {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.todo-edit-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--color-text-brand);
+  border: 1px solid var(--color-border-focus);
+  border-radius: 6px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+.todo-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.todo-row:hover .todo-actions,
+.todo-row:focus-within .todo-actions {
+  opacity: 1;
+}
+
+.todo-icon-btn {
+  display: flex;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.todo-icon-btn:hover,
+.todo-icon-btn:focus-visible {
+  color: var(--color-primary-hover);
+  background-color: var(--color-primary-light);
+}
+
+.todo-icon-btn.delete:hover,
+.todo-icon-btn.delete:focus-visible {
+  color: var(--color-error);
+  background-color: rgba(230, 57, 70, 0.08);
+}
+
+@media (max-width: 640px) {
+  /* No hover on touch screens: keep the edit/delete buttons visible */
+  .todo-actions {
+    opacity: 1;
+  }
+}

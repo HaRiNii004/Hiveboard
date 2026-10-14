@@ -43,4 +43,13 @@ public class BoardMember {
 
     @CreationTimestamp
     private Instant joinedAt;
+
+    // Stars are personal: they live on the membership, so starring a board doesn't
+    // star it for anyone else. Column default lets Hibernate add it to existing rows.
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean starred = false;
+
+    // When it was starred, so the Starred page can show the most recent first
+    private Instant starredAt;
 }

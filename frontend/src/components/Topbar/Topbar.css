@@ -146,3 +146,32 @@
 .dropdown-chevron {
   color: var(--color-text-muted);
 }
+
+/* Clear (×) button replaces the shortcut hint while there's a search */
+.search-clear {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.search-clear:hover,
+.search-clear:focus-visible {
+  color: var(--color-text-brand);
+  background-color: var(--color-primary-light);
+}
+
+/* Hide the browser's own clear button for type="search" (we have ours) */
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}

@@ -73,15 +73,27 @@ export default function Sidebar() {
               <LayoutDashboard size={20} className="nav-icon" />
               <span className="nav-label">Dashboard</span>
             </li>
-            <li className="nav-item" title={tooltip('Starred')}>
+            <li
+              className={`nav-item ${isActive('/starred') ? 'active' : ''}`}
+              onClick={() => navigate('/starred')}
+              title={tooltip('Starred')}
+            >
               <Star size={20} className="nav-icon" />
               <span className="nav-label">Starred</span>
             </li>
-            <li className="nav-item" title={tooltip('My Tasks')}>
+            <li
+              className={`nav-item ${isActive('/tasks') ? 'active' : ''}`}
+              onClick={() => navigate('/tasks')}
+              title={tooltip('My Tasks')}
+            >
               <CheckSquare size={20} className="nav-icon" />
               <span className="nav-label">My Tasks</span>
             </li>
-            <li className="nav-item" title={tooltip('Calendar')}>
+            <li
+              className={`nav-item ${isActive('/calendar') ? 'active' : ''}`}
+              onClick={() => navigate('/calendar')}
+              title={tooltip('Calendar')}
+            >
               <CalendarIcon size={20} className="nav-icon" />
               <span className="nav-label">Calendar</span>
             </li>
