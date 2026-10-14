@@ -108,3 +108,22 @@
     bottom: 16px;
   }
 }
+
+/* e.g. "Undo" on an "Archived ..." message */
+.notif-toast-action {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 4px 10px;
+  border: 1px solid var(--toast-accent, var(--color-primary));
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--toast-accent, var(--color-primary));
+  cursor: pointer;
+}
+
+.notif-toast-action:hover {
+  background-color: var(--toast-soft, var(--color-primary-light));
+}

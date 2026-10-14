@@ -1,3 +1,8 @@
+# Project name fixed to "hiveboard": the database container and its data volume
+# (hiveboard_pgdata) were created under that name, so Compose must keep using it
+# no matter which folder it's run from.
+name: hiveboard
+
 services:
   postgres:
     image: postgres:latest
@@ -10,6 +15,16 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql
+
+  # Local mail catcher: the backend sends real emails (password reset links) here
+  # instead of to real inboxes. Read them at http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: hiveboard-mailpit
+    ports:
+      - "1025:1025" # SMTP (backend/mail.properties)
+      - "8025:8025" # web inbox
+    restart: unless-stopped
 
 volumes:
   pgdata:

@@ -19,6 +19,8 @@ import com.h.hiveboard.backend.member.entity.BoardMember;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
+import com.h.hiveboard.backend.activity.entity.ActivityType;
+import com.h.hiveboard.backend.activity.service.ActivityRecorder;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.BoardUpdatedPayload;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.BoardDeletedPayload;
@@ -42,6 +44,7 @@ public class BoardService {
     private final BoardMemberRepository boardMemberRepository;
     private final BoardAccessService boardAccessService;
     private final BoardEventPublisher boardEventPublisher;
+    private final ActivityRecorder activityRecorder;         // the board's history
 
     // The creator becomes the board's first ADMIN; `owner` is kept as "created by".
     @Transactional
@@ -54,6 +57,7 @@ public class BoardService {
 
         boardRepository.save(board);
         boardAccessService.addMember(board, owner, BoardRole.ADMIN);
+        activityRecorder.board(board, owner, ActivityType.BOARD_CREATED, "created this board");
         return toSummary(board, BoardRole.ADMIN, owner, null);
     }
 
@@ -75,6 +79,7 @@ public class BoardService {
 
         boolean isViewer = membership.getRole() == BoardRole.VIEWER;
         List<ListResponse> lists = board.getLists().stream()
+                .filter(list -> !list.isArchived()) // see the board's archive
                 .map(list -> toListResponse(list, isViewer))
                 .toList();
 
@@ -90,8 +95,13 @@ public class BoardService {
     @Transactional
     public LabelsTitleResponse updateLabelsTitle(UUID boardId, User user, UpdateLabelsTitleRequest request) {
         Board board = boardAccessService.requireRole(boardId, user, BoardRole.MEMBER);
+        String oldTitle = labelsTitleOf(board);
         board.setLabelsTitle(request.labelsTitle().trim());
         boardRepository.save(board);
+        if (!oldTitle.equals(labelsTitleOf(board))) {
+            activityRecorder.board(board, user, ActivityType.BOARD_UPDATED,
+                    "renamed the labels field to " + ActivityRecorder.quote(labelsTitleOf(board)));
+        }
         publishBoardUpdated(board, user);
         return new LabelsTitleResponse(labelsTitleOf(board));
     }
@@ -100,9 +110,20 @@ public class BoardService {
     public BoardSummaryResponse updateBoard(UUID boardId, User user, UpdateBoardRequest request) {
         BoardMember membership = boardAccessService.requireMembership(boardId, user, BoardRole.ADMIN);
         Board board = membership.getBoard();
+        String oldName = board.getName();
+        String oldDescription = board.getDescription() == null ? "" : board.getDescription().strip();
         board.setName(request.name());
         board.setDescription(request.description());
         boardRepository.save(board);
+        if (!oldName.equals(board.getName())) {
+            activityRecorder.board(board, user, ActivityType.BOARD_UPDATED,
+                    "renamed the board from " + ActivityRecorder.quote(oldName) + " to " + ActivityRecorder.quote(board.getName()));
+        }
+        String newDescription = board.getDescription() == null ? "" : board.getDescription().strip();
+        if (!oldDescription.equals(newDescription)) {
+            activityRecorder.board(board, user, ActivityType.BOARD_UPDATED,
+                    newDescription.isEmpty() ? "removed the board description" : "updated the board description");
+        }
         publishBoardUpdated(board, user);
         return toSummary(board, BoardRole.ADMIN, user, membership);
     }

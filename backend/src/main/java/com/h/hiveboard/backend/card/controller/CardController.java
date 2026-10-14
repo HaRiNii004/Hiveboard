@@ -6,6 +6,7 @@ import com.h.hiveboard.backend.card.dto.CardDtos.UpdateCardRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.MoveCardRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.SetPriorityRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.ReorderCardsRequest;
+import com.h.hiveboard.backend.card.dto.CardDtos.RestoreCardRequest;
 import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.card.service.CardService;
 import jakarta.validation.Valid;
@@ -66,6 +67,21 @@ public class CardController {
         return ResponseEntity.ok(cardService.setPriority(cardId, user, request));
     }
 
+    // Off the board, into the board's archive
+    @PatchMapping("/api/cards/{cardId}/archive")
+    public ResponseEntity<Void> archive(@AuthenticationPrincipal User user, @PathVariable UUID cardId) {
+        cardService.archiveCard(cardId, user);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Back onto the board (optionally into another list: { "listId": ... })
+    @PatchMapping("/api/cards/{cardId}/restore")
+    public ResponseEntity<CardResponse> restore(@AuthenticationPrincipal User user, @PathVariable UUID cardId,
+                                                @RequestBody(required = false) RestoreCardRequest request) {
+        return ResponseEntity.ok(cardService.restoreCard(cardId, user, request));
+    }
+
+    // Deletes for good (from the archive)
     @DeleteMapping("/api/cards/{cardId}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal User user, @PathVariable UUID cardId) {
         cardService.deleteCard(cardId, user);

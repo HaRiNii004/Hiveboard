@@ -16,23 +16,20 @@ import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
 import com.h.hiveboard.backend.notification.service.NotificationService;
+import com.h.hiveboard.backend.activity.entity.ActivityType;
+import com.h.hiveboard.backend.activity.service.ActivityRecorder;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.MemberPayload;
 import com.h.hiveboard.backend.member.dto.MemberDtos.MemberResponse;
+import com.h.hiveboard.backend.util.SecureTokens;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -44,13 +41,13 @@ import java.util.UUID;
 public class InvitationService {
 
     private static final Duration INVITE_VALID_FOR = Duration.ofDays(7);
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final InvitationRepository invitationRepository;
     private final BoardMemberRepository boardMemberRepository;
     private final BoardAccessService boardAccessService;
     private final NotificationService notificationService;
     private final BoardEventPublisher boardEventPublisher;
+    private final ActivityRecorder activityRecorder;         // the board's history
 
     // Where the frontend lives, for building invite links.
     @Value("${app.frontend-url:http://localhost:5173}")
@@ -76,12 +73,12 @@ public class InvitationService {
             existing.setStatus(InvitationStatus.EXPIRED);
         }
 
-        String token = newToken();
+        String token = SecureTokens.newToken();
         Invitation invitation = Invitation.builder()
                 .board(board)
                 .email(email)
                 .role(request.role())
-                .tokenHash(hash(token))
+                .tokenHash(SecureTokens.hash(token))
                 .status(InvitationStatus.PENDING)
                 .expiresAt(Instant.now().plus(INVITE_VALID_FOR))
                 .invitedBy(user)
@@ -167,6 +164,8 @@ public class InvitationService {
         BoardMember member = membership.orElseGet(() -> {
             BoardMember joined = boardAccessService.addMember(invitation.getBoard(), user, invitation.getRole());
             notificationService.memberJoined(invitation.getBoard(), user);
+            activityRecorder.board(invitation.getBoard(), user, ActivityType.MEMBER_JOINED,
+                    "joined the board as " + ActivityRecorder.role(invitation.getRole()));
             boardEventPublisher.publish(boardId, "MEMBER_ADDED", user, new MemberPayload(MemberResponse.from(joined)));
             return joined;
         });
@@ -179,7 +178,7 @@ public class InvitationService {
     // --- helpers ---
 
     private Invitation findByToken(String token) {
-        return invitationRepository.findByTokenHash(hash(token))
+        return invitationRepository.findByTokenHash(SecureTokens.hash(token))
                 .orElseThrow(() -> new ResourceNotFoundException("This invitation link is invalid"));
     }
 
@@ -197,21 +196,5 @@ public class InvitationService {
 
     private static String normalize(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    // 32 random bytes, URL-safe: unguessable and fine to put in a link
-    private static String newToken() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private static String hash(String token) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 }

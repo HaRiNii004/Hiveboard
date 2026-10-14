@@ -8,8 +8,12 @@ import com.h.hiveboard.backend.comment.dto.CommentDtos.CreateCommentRequest;
 import com.h.hiveboard.backend.comment.entity.Comment;
 import com.h.hiveboard.backend.comment.repository.CommentRepository;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
+import com.h.hiveboard.backend.member.entity.BoardMember;
 import com.h.hiveboard.backend.member.entity.BoardRole;
+import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.notification.service.NotificationService;
+import com.h.hiveboard.backend.activity.entity.ActivityType;
+import com.h.hiveboard.backend.activity.service.ActivityRecorder;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.CommentAddedPayload;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +37,10 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final CardService cardService; // finds cards with a role check
+    private final BoardMemberRepository boardMemberRepository;
     private final NotificationService notificationService;
     private final BoardEventPublisher boardEventPublisher;
+    private final ActivityRecorder activityRecorder;         // the board's history
 
     // Threads: top-level comments newest first, each with its replies oldest first.
     @Transactional(readOnly = true)
@@ -57,25 +68,37 @@ public class CommentService {
 
     @Transactional
     public CommentResponse addComment(UUID cardId, User user, CreateCommentRequest request) {
-        Card card = cardService.getCardForRole(cardId, user, BoardRole.MEMBER);
+        Card card = cardService.getEditableCard(cardId, user); // not on archived cards
         Comment repliedTo = request.parentId() != null ? findParent(request.parentId(), card) : null;
         // Threads are one level deep: replying to a reply joins its thread
         Comment threadRoot = repliedTo == null ? null
                 : repliedTo.getParent() != null ? repliedTo.getParent() : repliedTo;
 
+        String text = request.text().trim();
         Comment comment = Comment.builder()
-                .text(request.text().trim())
+                .text(text)
                 .card(card)
                 .author(user)
                 .parent(threadRoot)
+                .mentions(resolveMentions(card, text, request.mentionedUserIds()))
                 .build();
 
         // Flush so @CreationTimestamp is filled in before we build the response
         commentRepository.saveAndFlush(comment);
 
+        activityRecorder.card(card, user, ActivityType.COMMENT_ADDED,
+                (repliedTo != null ? "replied to " + repliedTo.getAuthor().getFullName() + " on {card}: "
+                        : "commented on {card}: ") + ActivityRecorder.quote(comment.getText()));
+
+        // Mentioned people get "mentioned you"; the people replied to get "replied to you"
+        // (unless they were mentioned too: one notification each)
+        notificationService.commentMentioned(comment, comment.getMentions(), user);
         if (repliedTo != null) {
-            // The person replied to, and whoever started the thread
-            notificationService.commentReplied(comment, List.of(repliedTo.getAuthor(), threadRoot.getAuthor()), user);
+            List<User> repliedToAuthors = Stream
+                    .of(repliedTo.getAuthor(), threadRoot.getAuthor())
+                    .filter(author -> comment.getMentions().stream().noneMatch(m -> m.getId().equals(author.getId())))
+                    .toList();
+            notificationService.commentReplied(comment, repliedToAuthors, user);
         }
 
         // Lets open boards update the card's comment count (and open comment popups refresh)
@@ -84,6 +107,27 @@ public class CommentService {
         boardEventPublisher.publish(card.getBoardList().getBoard().getId(), "COMMENT_ADDED", user, payload,
                 card.isHiddenFromViewers() ? null : "COMMENT_ADDED", payload);
         return CommentResponse.from(comment);
+    }
+
+    // Mentions must be people on the board who can see the card, and must actually be in
+    // the text as "@Full Name" (a mention deleted while typing doesn't notify anyone).
+    private Set<User> resolveMentions(Card card, String text, List<Long> userIds) {
+        Set<User> mentioned = new HashSet<>();
+        if (userIds == null) return mentioned;
+        UUID boardId = card.getBoardList().getBoard().getId();
+        String lower = text.toLowerCase(Locale.ROOT);
+        for (Long userId : new LinkedHashSet<>(userIds)) {
+            BoardMember member = boardMemberRepository.findByBoardIdAndUserId(boardId, userId)
+                    .orElseThrow(() -> new IllegalArgumentException("You can only mention people on this board"));
+            if (card.isHiddenFromViewers() && member.getRole() == BoardRole.VIEWER) {
+                throw new IllegalArgumentException(member.getUser().getFullName()
+                        + " can't see this card (it's hidden from viewers), so they can't be mentioned");
+            }
+            if (lower.contains("@" + member.getUser().getFullName().toLowerCase(Locale.ROOT))) {
+                mentioned.add(member.getUser());
+            }
+        }
+        return mentioned;
     }
 
     // The comment being replied to must be on the same card.

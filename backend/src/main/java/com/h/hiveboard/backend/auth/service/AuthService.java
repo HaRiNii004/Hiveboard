@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -23,13 +25,14 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.findFirstByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalArgumentException("An account with this email already exists");
         }
 
         User user = User.builder()
-                .fullName(request.fullName())
-                .email(request.email())
+                .fullName(request.fullName().trim())
+                .email(email)
                 .password(passwordEncoder.encode(request.password())) // never store plain text
                 .role(Role.USER)
                 .build();
@@ -48,9 +51,10 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.email())
+                .or(() -> userRepository.findFirstByEmailIgnoreCase(request.email()))
                 .orElseThrow(() -> new IllegalStateException("User disappeared after authentication"));
 
-        String token = jwtUtil.generateToken(user);
+        String token = jwtUtil.generateToken(user, Boolean.TRUE.equals(request.rememberMe()));
         return new AuthResponse(token, user.getEmail(), user.getFullName());
     }
 }

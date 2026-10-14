@@ -1,0 +1,142 @@
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.activity-item {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+/* The timeline line between icons */
+.activity-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 32px;
+  bottom: -6px;
+  width: 2px;
+  background-color: #f7e6d2;
+}
+
+.activity-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.activity-icon.type-member {
+  background-color: #e8f1fb;
+  color: #2f6db5;
+}
+
+.activity-icon.type-comment {
+  background-color: #eef7ee;
+  color: #3b8a3e;
+}
+
+.activity-icon.type-list,
+.activity-icon.type-board,
+.activity-icon.type-label {
+  background-color: #f3eef9;
+  color: #7a4fb0;
+}
+
+.activity-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.activity-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-body);
+  word-break: break-word;
+}
+
+.activity-actor {
+  font-weight: 700;
+}
+
+.activity-card-ref {
+  font-weight: 600;
+}
+
+.activity-card-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  cursor: pointer;
+  text-align: left;
+}
+
+.activity-card-link:hover,
+.activity-card-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.activity-time {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.activity-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 16px 8px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.activity-status.error {
+  color: var(--color-error);
+}
+
+.activity-more {
+  align-self: center;
+  margin-top: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  cursor: pointer;
+}
+
+.activity-more:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+}
+
+.activity-more:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

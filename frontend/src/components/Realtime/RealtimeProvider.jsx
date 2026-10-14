@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import { RealtimeContext } from './realtimeContext';
+import { getToken } from '../../utils/authSession';
 
 const TOKEN_CHECK_MS = 2000; // notice log in / log out without a page reload
 const RECONNECT_MS = 3000;
@@ -64,7 +65,7 @@ export default function RealtimeProvider({ children }) {
     };
 
     const sync = () => {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       if (token === currentToken) return;
       currentToken = token;
       stop();

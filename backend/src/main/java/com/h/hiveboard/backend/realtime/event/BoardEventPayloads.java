@@ -25,6 +25,11 @@ public class BoardEventPayloads {
 
     public record ListDeletedPayload(UUID listId) {}
 
+    // A card taken off the board into the archive (CARD_ARCHIVED); restoring sends CARD_RESTORED
+    // with a CardPayload. LIST_ARCHIVED uses ListDeletedPayload, LIST_RESTORED a ListPayload,
+    // and LIST_CARDS_ARCHIVED ("archive all cards in this list") a ListPayload of what's left.
+    public record CardArchivedPayload(UUID listId, UUID cardId) {}
+
     public record ListsReorderedPayload(List<UUID> orderedListIds) {}
 
     public record CommentAddedPayload(UUID listId, UUID cardId, long commentCount) {}

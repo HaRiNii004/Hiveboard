@@ -8,6 +8,8 @@ import BoardView from './pages/boardview/BoardView';
 import InvitePage from './pages/invite/InvitePage';
 import TasksPage from './pages/tasks/TasksPage';
 import CalendarPage from './pages/calendar/CalendarPage';
+import ForgotPassword from './pages/PasswordReset/ForgotPassword';
+import ResetPassword from './pages/PasswordReset/ResetPassword';
 import NotificationsProvider from './components/Notifications/NotificationsProvider';
 import RealtimeProvider from './components/Realtime/RealtimeProvider';
 
@@ -22,6 +24,8 @@ export default function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard key="all" />} />
             <Route path="/starred" element={<Dashboard key="starred" view="starred" />} />
             <Route path="/tasks" element={<TasksPage />} />

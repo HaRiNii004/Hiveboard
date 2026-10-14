@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { signup } from '../../api/auth';
 import HiveVisual from '../../components/HiveVisual/HiveVisual';
 import { getSafeRedirect, withRedirect } from '../../utils/redirect';
 import logo from '../../assets/logo.svg';
-import googleIcon from '../../assets/google.svg';
 import './Signup.css';
+import GoogleSignIn from '../../components/GoogleSignIn/GoogleSignIn';
+import { saveSession } from '../../utils/authSession';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 export default function Signup() {
   const [fullName, setFullName] = useState('');
@@ -15,7 +17,6 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,7 +26,6 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
     
     if (!fullName || !email || !password) {
       setError('Please fill in all fields.');
@@ -41,27 +41,12 @@ export default function Signup() {
     try {
       const response = await signup(fullName, email, password);
 
-      const { token, email: resEmail, fullName: resName } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify({ email: resEmail, fullName: resName }));
-      
-      setSuccess('Account created successfully! Redirecting...');
-      
-      setTimeout(() => {
-        navigate(redirect || '/dashboard');
-      }, 1500);
+      saveSession(response.data, true); // new accounts stay logged in, as before
+      navigate(redirect || '/dashboard');
 
     } catch (err) {
       console.error(err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else if (err.response && err.response.data && typeof err.response.data === 'string') {
-        setError(err.response.data);
-      } else {
-        setError('Signup failed. Email might already be in use or backend connection failed.');
-      }
-    } finally {
+      setError(getApiErrorMessage(err, 'Signup failed. Please try again.'));
       setLoading(false);
     }
   };
@@ -94,7 +79,6 @@ export default function Signup() {
 
             {/* Notifications */}
             {error && <div className="error-alert">{error}</div>}
-            {success && <div className="success-alert">{success}</div>}
 
             {/* Form */}
             <form onSubmit={handleSignup} className="auth-form">
@@ -159,15 +143,15 @@ export default function Signup() {
               </button>
             </form>
 
-            <div className="divider">
-              <span>or continue with</span>
-            </div>
-
-            {/* Social Authentication */}
-            <button type="button" className="social-btn google">
-              <img src={googleIcon} alt="Google Logo" width="18" height="18" />
-              <span>Google</span>
-            </button>
+            {/* Only shown when Google sign-in is set up on the server */}
+            <GoogleSignIn
+              rememberMe
+              onSuccess={(auth) => {
+                saveSession(auth, true);
+                navigate(redirect || '/dashboard');
+              }}
+              onError={setError}
+            />
 
             {/* Form Footer */}
             <p className="form-footer">

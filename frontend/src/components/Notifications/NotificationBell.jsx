@@ -35,7 +35,7 @@ export default function NotificationBell() {
     const link = linkFor(notification);
     if (link) {
       setOpen(false);
-      navigate(link);
+      navigate(link.path, { state: link.state });
     }
   };
 

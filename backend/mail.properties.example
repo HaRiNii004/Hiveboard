@@ -1,0 +1,29 @@
+# Copy this file to mail.properties (same folder) and keep ONE of the options below.
+# mail.properties is git-ignored, so passwords stay on your machine.
+# Restart the backend after changing it.
+
+# --- Option A: Mailpit (local testing, no real emails) ---------------------------------
+# Start it:   docker compose up -d mailpit      (in the backend folder)
+# Read mail:  http://localhost:8025   (password reset emails land there)
+spring.mail.host=localhost
+spring.mail.port=1025
+app.mail.from=HiveBoard <no-reply@hiveboard.local>
+
+# --- Option B: Gmail (real emails) -----------------------------------------------------
+#  1. Turn on 2-Step Verification: https://myaccount.google.com/security
+#  2. Create an App Password: https://myaccount.google.com/apppasswords
+#  3. Comment out Option A above, uncomment these and fill them in
+#     (use the 16-letter App Password, not your normal password)
+#spring.mail.host=smtp.gmail.com
+#spring.mail.port=587
+#spring.mail.username=your.address@gmail.com
+#spring.mail.password=abcd efgh ijkl mnop
+#spring.mail.properties.mail.smtp.auth=true
+#spring.mail.properties.mail.smtp.starttls.enable=true
+#spring.mail.properties.mail.smtp.starttls.required=true
+#app.mail.from=HiveBoard <your.address@gmail.com>
+
+# Either way: don't let a slow mail server hang sign-up
+spring.mail.properties.mail.smtp.connectiontimeout=10000
+spring.mail.properties.mail.smtp.timeout=10000
+spring.mail.properties.mail.smtp.writetimeout=10000

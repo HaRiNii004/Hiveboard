@@ -52,9 +52,11 @@ export function applyBoardEvent(state, event) {
     case 'CARD_CREATED':
     case 'CARD_UPDATED':
     case 'CARD_MOVED':
+    case 'CARD_RESTORED': // back from the archive
       return { members, board: upsertCard(board, p.listId, p.card) };
 
     case 'CARDS_REORDERED':
+    case 'LIST_CARDS_ARCHIVED': // the list's cards after "archive all cards"
       return {
         members,
         board: {
@@ -65,6 +67,7 @@ export function applyBoardEvent(state, event) {
       };
 
     case 'CARD_DELETED':
+    case 'CARD_ARCHIVED': // off the board, into the archive
       return { members, board: { ...board, lists: withoutCard(board.lists, p.cardId) } };
 
     case 'COMMENT_ADDED':
@@ -91,7 +94,19 @@ export function applyBoardEvent(state, event) {
       return { members, board: { ...board, lists } };
     }
 
+    case 'LIST_RESTORED': // back from the archive, with its cards
+      return {
+        members,
+        board: {
+          ...board,
+          lists: board.lists.some(l => l.id === p.list.id)
+            ? board.lists.map(l => (l.id === p.list.id ? p.list : l))
+            : [...board.lists, p.list]
+        }
+      };
+
     case 'LIST_DELETED':
+    case 'LIST_ARCHIVED':
       return { members, board: { ...board, lists: board.lists.filter(l => l.id !== p.listId) } };
 
     // ---- labels ----

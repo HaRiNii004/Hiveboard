@@ -8,10 +8,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,6 +53,16 @@ public class Comment {
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Comment> replies = new ArrayList<>();
+
+    // People @mentioned in the text (picked from the board's members). The text keeps
+    // "@Full Name"; this says who that is, so the right person is notified and highlighted.
+    @ManyToMany
+    @JoinTable(name = "comment_mentions",
+            joinColumns = @JoinColumn(name = "comment_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    @BatchSize(size = 50)
+    @Builder.Default
+    private Set<User> mentions = new HashSet<>();
 
     @CreationTimestamp
     private Instant createdAt;

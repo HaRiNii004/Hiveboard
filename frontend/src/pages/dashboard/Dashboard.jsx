@@ -13,6 +13,7 @@ import { useRealtime } from '../../components/Realtime/useRealtime';
 import HighlightText from '../../components/HighlightText/HighlightText';
 import { searchWords, matchesBoard } from '../../utils/boardSearch';
 import './Dashboard.css';
+import { getStoredUser } from '../../utils/authSession';
 
 const formatCreatedDate = (createdAt) => {
   if (!createdAt) return '';
@@ -74,18 +75,8 @@ export default function Dashboard({ view = 'all' }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [starError, setStarError] = useState('');
 
-  const storedUser = localStorage.getItem('user');
-  let userName = 'Harini Selvaraj';
-  if (storedUser) {
-    try {
-      const parsed = JSON.parse(storedUser);
-      if (parsed && parsed.fullName) {
-        userName = parsed.fullName;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
+  const storedUser = getStoredUser();
+  const userName = storedUser && storedUser.fullName ? storedUser.fullName : 'Harini Selvaraj';
 
   const firstName = userName.split(' ')[0];
 

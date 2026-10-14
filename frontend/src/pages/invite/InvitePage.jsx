@@ -6,17 +6,16 @@ import { roleLabel } from '../../utils/boardPermissions';
 import { getApiErrorMessage } from '../../utils/apiError';
 import logo from '../../assets/logo.svg';
 import './InvitePage.css';
+import { getStoredUser, isLoggedIn, clearSession } from '../../utils/authSession';
 
 const loggedInEmail = () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = getStoredUser();
     return user && user.email ? user.email : '';
   } catch {
     return '';
   }
 };
-
-const isLoggedIn = () => Boolean(localStorage.getItem('token'));
 
 // Resolves (never rejects): { invite } | { sessionExpired } | { error }
 const fetchPreview = (token) => {
@@ -29,8 +28,7 @@ const fetchPreview = (token) => {
       const hasMessage = data && typeof data === 'object' && Object.keys(data).length > 0;
       if ((status === 401 || status === 403) && !hasMessage) {
         // Stale login: forget it so the login page starts clean
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearSession();
         return { sessionExpired: true };
       }
       if (status === 404) {
@@ -64,8 +62,7 @@ export default function InvitePage() {
   }, [token, loggedIn]);
 
   const switchAccount = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearSession();
     navigate(loginUrl);
   };
 

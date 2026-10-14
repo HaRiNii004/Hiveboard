@@ -1,6 +1,7 @@
 package com.h.hiveboard.backend.config;
 
 import com.h.hiveboard.backend.exception.ConflictException;
+import com.h.hiveboard.backend.exception.EmailDeliveryException;
 import com.h.hiveboard.backend.exception.ForbiddenOperationException;
 import com.h.hiveboard.backend.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleBadCredentials() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "Invalid email or password"));
+    }
+
+    // The mail server failed (details are in the log, not shown to the user)
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<Map<String, String>> handleEmailDelivery(EmailDeliveryException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

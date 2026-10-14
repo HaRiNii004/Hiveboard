@@ -37,7 +37,7 @@ public class Notification {
     @JoinColumn(name = "actor_id")
     private User actor;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = NotificationTypeConverter.class)
     @Column(nullable = false)
     private NotificationType type;
 

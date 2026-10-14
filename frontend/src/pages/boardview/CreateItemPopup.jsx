@@ -13,6 +13,8 @@ import './CreateItemPopup.css';
 // `initialValues` pre-fills the inputs when editing.
 // `readOnly` shows the values without letting them change (e.g. for board Viewers).
 // `extraActions` is shown on the left of the buttons (e.g. "Duplicate").
+// `wide` makes the popup wider (cards). `aside` is shown in a column next to the form
+// (e.g. a card's activity); on small screens it goes below the form.
 // `onSubmit(values)` must return a promise; if it rejects, the error is shown in the popup.
 export default function CreateItemPopup({
   heading,
@@ -23,6 +25,9 @@ export default function CreateItemPopup({
   submittingLabel = 'Creating...',
   readOnly = false,
   extraActions = null,
+  moreActions = null,
+  wide = false,
+  aside = null,
   onSubmit,
   onClose
 }) {
@@ -92,7 +97,12 @@ export default function CreateItemPopup({
 
   return (
     <div className="item-popup-overlay" onMouseDown={handleOverlayClick}>
-      <div className="item-popup-card" role="dialog" aria-modal="true" aria-labelledby="item-popup-title">
+      <div
+        className={`item-popup-card ${wide ? 'wide' : ''} ${aside ? 'with-aside' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="item-popup-title"
+      >
 
         {/* Header */}
         <div className="item-popup-header">
@@ -111,6 +121,7 @@ export default function CreateItemPopup({
           </button>
         </div>
 
+        <div className="item-popup-layout">
         <form className="item-popup-form" onSubmit={handleSubmit}>
           {fields.map((field, index) => {
             if (field.type === 'custom') {
@@ -160,7 +171,9 @@ export default function CreateItemPopup({
 
           {/* Actions */}
           <div className="item-popup-actions">
-            {extraActions && <div className="item-popup-actions-extra">{extraActions}</div>}
+            {(extraActions || moreActions) && (
+              <div className="item-popup-actions-extra">{extraActions}{moreActions}</div>
+            )}
             {readOnly ? (
               <button type="button" className="item-popup-btn secondary" onClick={onClose}>
                 Close
@@ -178,6 +191,8 @@ export default function CreateItemPopup({
           </div>
         </form>
 
+        {aside && <div className="item-popup-aside">{aside}</div>}
+        </div>
       </div>
     </div>
   );

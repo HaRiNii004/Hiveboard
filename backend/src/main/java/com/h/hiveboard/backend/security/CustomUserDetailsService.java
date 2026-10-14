@@ -15,7 +15,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // Exact match first (JWT subjects carry the stored email); then ignoring case, so
+        // logging in as "Ann@Example.com" works for ann@example.com
         return userRepository.findByEmail(email)
+                .or(() -> userRepository.findFirstByEmailIgnoreCase(email))
                 .orElseThrow(() -> new UsernameNotFoundException("No user with email: " + email));
     }
 }

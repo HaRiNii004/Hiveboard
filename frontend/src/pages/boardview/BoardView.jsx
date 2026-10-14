@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare, Users, Eye, Flag, X, GripVertical, Copy, ListTodo } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, AlignLeft, Calendar, MessageSquare, Users, Eye, Flag, X, GripVertical, Copy, ListTodo, History, Archive } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, KeyboardSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import Sidebar from '../../components/Sidebar/Sidebar';
@@ -17,22 +17,29 @@ import ShareDialog from './ShareDialog';
 import SortableCard from './SortableCard';
 import ListDropZone from './ListDropZone';
 import BoardTasksPanel from './BoardTasksPanel';
+import BoardActivityPanel from './BoardActivityPanel';
+import ArchivePanel from './ArchivePanel';
+import BoardFilterBar from './BoardFilterBar';
+import CardActivitySection from './CardActivitySection';
 import { getBoardDetail, updateLabelsTitle } from '../../api/boards';
 import { getMembers } from '../../api/members';
 import { createLabel, updateLabel, deleteLabel } from '../../api/labels';
-import { createList, updateList } from '../../api/lists';
-import { createCard, updateCard, setCardPriority, reorderCards, moveCard, duplicateCard } from '../../api/cards';
+import { createList, updateList, archiveList, restoreList, archiveAllCards } from '../../api/lists';
+import { createCard, updateCard, setCardPriority, reorderCards, moveCard, duplicateCard, archiveCard, restoreCard } from '../../api/cards';
 import { getColorScheme } from '../../utils/boardColors';
 import { getDueDateInfo, toTimeInputValue } from '../../utils/dueDate';
 import { getBoardPermissions, roleLabel } from '../../utils/boardPermissions';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { initials } from '../../utils/initials';
 import { applyBoardEvent } from '../../utils/applyBoardEvent';
+import { cardFilter, isFiltering, loadFilters, saveFilters } from '../../utils/cardFilters';
 import { moveCardInList, moveCardBetweenLists, findListOfCard } from '../../utils/cardOrder';
 import { useBoardSocket } from '../../components/Realtime/useBoardSocket';
+import { useNotifications } from '../../components/Notifications/useNotifications';
 import PresenceAvatars from '../../components/Realtime/PresenceAvatars';
 import LiveCursors from '../../components/Realtime/LiveCursors';
 import './BoardView.css';
+import { getStoredUser } from '../../utils/authSession';
 
 // Limits match the database columns (VARCHAR(255) names/titles, TEXT card description)
 const LIST_FIELDS = [
@@ -99,7 +106,7 @@ const fetchBoard = (boardId) => {
 
 const currentUserEmail = () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = getStoredUser();
     return user && user.email ? user.email.toLowerCase() : '';
   } catch {
     return '';
@@ -109,20 +116,33 @@ const currentUserEmail = () => {
 export default function BoardView() {
   const { boardId } = useParams();
   const navigate = useNavigate();
-  // Set when coming from the calendar: open that card's popup once the board loads
+  // Set when coming from the calendar or a notification: open that card's popup (or its
+  // comments) once the board loads
   const location = useLocation();
   const openCardId = location.state ? location.state.openCardId : null;
+  const openCommentsOnLoad = Boolean(location.state && location.state.openComments);
 
   // Result is tagged with the boardId it belongs to, so switching boards shows loading
   const [result, setResult] = useState(null);
   // null | { type: 'list' } | { type: 'editList', list }
   //      | { type: 'card', listId, listName } | { type: 'editCard', listId, listName, card }
-  //      | { type: 'comments', listId, card } | { type: 'share' } | { type: 'tasks' }
+  //      | { type: 'comments', listId, card } | { type: 'share' } | { type: 'tasks' } | { type: 'activity' } | { type: 'archive' }
   const [popup, setPopup] = useState(null);
   const [priorityError, setPriorityError] = useState('');
   const [duplicating, setDuplicating] = useState(false);
   // e.g. "Write docs was deleted by Bob" when a card you had open is deleted by someone else
   const [liveNotice, setLiveNotice] = useState('');
+  // Board filters (label / assignee / due date / priority / text), remembered per board for this tab
+  const [filterState, setFilterState] = useState(() => ({ boardId, filters: loadFilters(boardId) }));
+  const filters = filterState.boardId === boardId ? filterState.filters : loadFilters(boardId);
+  const changeFilters = (next) => {
+    setFilterState({ boardId, filters: next });
+    saveFilters(boardId, next);
+  };
+  const filtering = isFiltering(filters);
+
+  const [archiving, setArchiving] = useState(false);
+  const { showToast } = useNotifications(); // bottom-right pop-ups (e.g. "Archived ..." with Undo)
   // bumped when someone else comments on the card whose comments are open
   const [commentsRefresh, setCommentsRefresh] = useState(0);
 
@@ -161,13 +181,16 @@ export default function BoardView() {
         ? res.board.lists.find(l => l.cards.some(c => c.id === openCardId))
         : null;
       if (list) {
-        setPopup({ type: 'editCard', listId: list.id, listName: list.name, card: list.cards.find(c => c.id === openCardId) });
+        const card = list.cards.find(c => c.id === openCardId);
+        setPopup(openCommentsOnLoad
+          ? { type: 'comments', listId: list.id, card }
+          : { type: 'editCard', listId: list.id, listName: list.name, card });
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [boardId, openCardId]);
+  }, [boardId, openCardId, openCommentsOnLoad]);
 
   // Reload quietly (e.g. after my own role changed in the Share dialog)
   const refreshBoard = () => {
@@ -223,13 +246,34 @@ export default function BoardView() {
       setPopup(null);
       setLiveNotice(`"${popup.card.title}" was deleted by ${event.actorName}.`);
     }
+    if (event.type === 'CARD_ARCHIVED' && byOther && popup && popup.card && popup.card.id === p.cardId) {
+      setPopup(null);
+      setLiveNotice(`"${popup.card.title}" was archived by ${event.actorName}. You can restore it from Archived.`);
+    }
+    if (event.type === 'LIST_ARCHIVED' && byOther && popup
+        && ((popup.list && popup.list.id === p.listId) || popup.listId === p.listId)) {
+      setPopup(null);
+      setLiveNotice(`That list was archived by ${event.actorName}. You can restore it from Archived.`);
+    }
     if (event.type === 'COMMENT_ADDED' && byOther && popup && popup.type === 'comments' && popup.card.id === p.cardId) {
       setCommentsRefresh(k => k + 1);
     }
   };
 
+  // New history entries go straight to whichever activity views are open (the board
+  // panel, a card's activity); they don't change the board itself
+  const activityListeners = useRef(new Set());
+  const subscribeActivity = useCallback((listener) => {
+    activityListeners.current.add(listener);
+    return () => activityListeners.current.delete(listener);
+  }, []);
+
   // Events from other people (and my own echoes) over the WebSocket
   const handleRemoteEvent = (event) => {
+    if (event.type === 'ACTIVITY_ADDED') {
+      activityListeners.current.forEach(listener => listener(event.payload));
+      return;
+    }
     if (handleUrgentEvent(event)) return;
     if (draggingRef.current) {
       queuedEvents.current.push(event); // applied when the card is dropped
@@ -361,6 +405,73 @@ export default function BoardView() {
       setDuplicating(false);
     }
   };
+
+  // ---- Archive (from the card popup and the list's edit popup) ----
+  // A bottom-right pop-up for 4 seconds, with Undo
+  const showUndo = (text, undo) => {
+    showToast({
+      title: 'Archived',
+      message: text,
+      icon: Archive,
+      duration: 4000,
+      action: {
+        label: 'Undo',
+        run: () => undo().catch(err => {
+          console.error(err);
+          setPriorityError(getApiErrorMessage(err, 'Could not undo. You can restore it from Archived.'));
+        })
+      }
+    });
+  };
+
+  const runArchive = async (action, fallback) => {
+    setArchiving(true);
+    try {
+      await action();
+    } catch (err) {
+      console.error(err);
+      setPriorityError(getApiErrorMessage(err, fallback));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleArchiveCard = () => runArchive(async () => {
+    const { listId, card } = popup;
+    await archiveCard(card.id);
+    applyEvent({ type: 'CARD_ARCHIVED', payload: { listId, cardId: card.id } });
+    setPopup(null);
+    showUndo(`"${card.title}" moved to the archive.`, async () => {
+      const response = await restoreCard(card.id);
+      applyEvent({ type: 'CARD_RESTORED', payload: { listId, card: response.data } });
+    });
+  }, 'Could not archive the card. Please try again.');
+
+  const handleArchiveList = () => runArchive(async () => {
+    const { list } = popup;
+    await archiveList(list.id);
+    applyEvent({ type: 'LIST_ARCHIVED', payload: { listId: list.id } });
+    setPopup(null);
+    showUndo(`The list "${list.name}" and its cards moved to the archive.`, async () => {
+      const response = await restoreList(list.id);
+      applyEvent({ type: 'LIST_RESTORED', payload: { list: response.data } });
+    });
+  }, 'Could not archive the list. Please try again.');
+
+  const handleArchiveAllCards = () => runArchive(async () => {
+    const { list } = popup;
+    const cardIds = list.cards.map(card => card.id);
+    const response = await archiveAllCards(list.id);
+    applyEvent({ type: 'LIST_CARDS_ARCHIVED', payload: { list: { ...list, cards: [] } } });
+    setPopup(null);
+    const count = response.data.archived;
+    showUndo(`${count === 1 ? '1 card' : `${count} cards`} from "${list.name}" moved to the archive.`, async () => {
+      for (const cardId of cardIds) {
+        const restored = await restoreCard(cardId);
+        applyEvent({ type: 'CARD_RESTORED', payload: { listId: list.id, card: restored.data } });
+      }
+    });
+  }, 'Could not archive the cards. Please try again.');
 
   const handleCreateList = async ({ name }) => {
     const response = await createList(boardId, name);
@@ -499,6 +610,15 @@ export default function BoardView() {
     : [];
 
   // One card. With `sortable` (from SortableCard) it can be dragged within its list.
+  // ---- Filters ----
+  const matchesFilters = cardFilter(filters, myUserId);
+  const totalCount = board ? board.lists.reduce((n, l) => n + l.cards.length, 0) : 0;
+  const shownCount = board && filtering
+    ? board.lists.reduce((n, l) => n + l.cards.filter(matchesFilters).length, 0)
+    : totalCount;
+  // Dragging needs every card in view: a filtered list can't be reordered sensibly
+  const canDrag = perms.canEdit && !filtering;
+
   const renderCard = (list, card, sortable = null) => (
       <article
         key={card.id}
@@ -657,6 +777,22 @@ export default function BoardView() {
                   </span>
                   <button
                     className="boardview-share-btn"
+                    onClick={() => setPopup({ type: 'archive' })}
+                    title="Archived cards and lists: restore or delete them"
+                  >
+                    <Archive size={16} />
+                    Archived
+                  </button>
+                  <button
+                    className="boardview-share-btn"
+                    onClick={() => setPopup({ type: 'activity' })}
+                    title="Who changed what on this board"
+                  >
+                    <History size={16} />
+                    Activity
+                  </button>
+                  <button
+                    className="boardview-share-btn"
                     onClick={() => setPopup({ type: 'tasks' })}
                     title="Your personal to-do list for this board (only you can see it)"
                   >
@@ -680,6 +816,18 @@ export default function BoardView() {
                 </div>
               )}
 
+              <BoardFilterBar
+                filters={filters}
+                onChange={changeFilters}
+                members={members}
+                myUserId={myUserId}
+                shown={shownCount}
+                total={totalCount}
+              />
+              {filtering && perms.canEdit && (
+                <p className="boardview-filter-note">Drag and drop is paused while filters are on.</p>
+              )}
+
               {/* Lists: one drag area, so cards can move within and between lists */}
               <DndContext
                 sensors={sensors}
@@ -694,12 +842,16 @@ export default function BoardView() {
                 onMouseMove={handleBoardMouseMove}
                 onMouseLeave={live.hideCursor}
               >
-                {board.lists.map(list => (
+                {board.lists.map(list => {
+                  const cards = filtering ? list.cards.filter(matchesFilters) : list.cards;
+                  return (
                   <section key={list.id} className="board-list">
                     <div className="board-list-header">
                       <h2 className="board-list-title" title={list.name}>{list.name}</h2>
                       <div className="board-list-header-actions">
-                        <span className="board-list-count">{list.cards.length}</span>
+                        <span className="board-list-count" title={filtering ? `${cards.length} of ${list.cards.length} cards match` : undefined}>
+                          {filtering ? `${cards.length}/${list.cards.length}` : list.cards.length}
+                        </span>
                         {perms.canEdit && (
                           <button
                             className="boardview-edit-btn small"
@@ -715,20 +867,22 @@ export default function BoardView() {
 
                     <ListDropZone listId={list.id} className="board-list-cards">
                       {/* High-priority cards are pinned at the top; the rest can be dragged */}
-                      {list.cards.filter(card => card.highPriority || !perms.canEdit).map(card => renderCard(list, card))}
-                      {perms.canEdit && (
+                      {cards.filter(card => card.highPriority || !canDrag).map(card => renderCard(list, card))}
+                      {canDrag && (
                         <SortableContext
-                          items={list.cards.filter(card => !card.highPriority).map(card => card.id)}
+                          items={cards.filter(card => !card.highPriority).map(card => card.id)}
                           strategy={verticalListSortingStrategy}
                         >
-                          {list.cards.filter(card => !card.highPriority).map(card => (
+                          {cards.filter(card => !card.highPriority).map(card => (
                             <SortableCard key={card.id} id={card.id} listId={list.id}>
                               {sortable => renderCard(list, card, sortable)}
                             </SortableCard>
                           ))}
                         </SortableContext>
                       )}
-                      {list.cards.length === 0 && <p className="board-list-empty">No cards yet</p>}
+                      {cards.length === 0 && (
+                        <p className="board-list-empty">{list.cards.length === 0 ? 'No cards yet' : 'No matching cards'}</p>
+                      )}
                     </ListDropZone>
 
                     {perms.canEdit && (
@@ -741,7 +895,8 @@ export default function BoardView() {
                       </button>
                     )}
                   </section>
-                ))}
+                  );
+                })}
 
                 {/* Create list column */}
                 {perms.canEdit && (
@@ -791,6 +946,31 @@ export default function BoardView() {
           initialValues={{ name: popup.list.name }}
           submitLabel="Save Changes"
           submittingLabel="Saving..."
+          extraActions={(
+            <>
+              <button
+                type="button"
+                className="item-popup-btn secondary"
+                onClick={handleArchiveList}
+                disabled={archiving}
+                title="Take the list and its cards off the board. You can restore it from Archived."
+              >
+                <Archive size={15} />
+                Archive list
+              </button>
+              {popup.list.cards.length > 0 && (
+                <button
+                  type="button"
+                  className="item-popup-btn secondary"
+                  onClick={handleArchiveAllCards}
+                  disabled={archiving}
+                  title="Archive every card in this list (e.g. finished work) and keep the list"
+                >
+                  Archive all cards
+                </button>
+              )}
+            </>
+          )}
           onSubmit={handleUpdateList}
           onClose={() => setPopup(null)}
         />
@@ -800,6 +980,7 @@ export default function BoardView() {
         <CreateItemPopup
           heading="Add a card"
           subheading={`New card in "${popup.listName}".`}
+          wide
           fields={cardFields}
           submitLabel="Add Card"
           onSubmit={handleCreateCard}
@@ -812,8 +993,37 @@ export default function BoardView() {
           card={popup.card}
           canComment={perms.canEdit}
           refreshKey={commentsRefresh}
+          members={members}
+          myUserId={myUserId}
           onClose={() => setPopup(null)}
           onCommentAdded={handleCommentAdded}
+        />
+      )}
+
+      {popup && popup.type === 'archive' && (
+        <ArchivePanel
+          boardId={boardId}
+          boardName={board.name}
+          lists={board.lists}
+          canEdit={perms.canEdit}
+          subscribeActivity={subscribeActivity}
+          onCardRestored={(listId, card) => applyEvent({ type: 'CARD_RESTORED', payload: { listId, card } })}
+          onListRestored={(list) => applyEvent({ type: 'LIST_RESTORED', payload: { list } })}
+          onClose={() => setPopup(null)}
+        />
+      )}
+
+      {popup && popup.type === 'activity' && (
+        <BoardActivityPanel
+          boardId={boardId}
+          boardName={board.name}
+          subscribeActivity={subscribeActivity}
+          canOpenCard={(cardId) => Boolean(findListOfCard(board.lists, cardId))}
+          onOpenCard={(cardId) => {
+            const list = findListOfCard(board.lists, cardId);
+            if (list) openEditCard(list, list.cards.find(c => c.id === cardId));
+          }}
+          onClose={() => setPopup(null)}
         />
       )}
 
@@ -865,6 +1075,20 @@ export default function BoardView() {
               {duplicating ? 'Duplicating...' : 'Duplicate'}
             </button>
           ) : null}
+          moreActions={perms.canEdit ? (
+            <button
+              type="button"
+              className="item-popup-btn secondary"
+              onClick={handleArchiveCard}
+              disabled={archiving}
+              title="Take the card off the board. You can restore it from Archived."
+            >
+              <Archive size={15} />
+              {archiving ? 'Archiving...' : 'Archive'}
+            </button>
+          ) : null}
+          wide
+          aside={<CardActivitySection cardId={popup.card.id} subscribeActivity={subscribeActivity} />}
           onSubmit={handleUpdateCard}
           onClose={() => setPopup(null)}
         />

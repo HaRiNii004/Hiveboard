@@ -6,6 +6,8 @@ import com.h.hiveboard.backend.card.dto.CardDtos.UpdateCardRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.MoveCardRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.SetPriorityRequest;
 import com.h.hiveboard.backend.card.dto.CardDtos.ReorderCardsRequest;
+import com.h.hiveboard.backend.card.dto.CardDtos.RestoreCardRequest;
+import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.CardArchivedPayload;
 import com.h.hiveboard.backend.boardlist.entity.BoardList;
 import com.h.hiveboard.backend.card.entity.Card;
 import com.h.hiveboard.backend.auth.entity.User;
@@ -13,6 +15,8 @@ import com.h.hiveboard.backend.card.repository.CardRepository;
 import com.h.hiveboard.backend.boardlist.service.BoardListService;
 import com.h.hiveboard.backend.label.service.LabelService;
 import com.h.hiveboard.backend.notification.service.NotificationService;
+import com.h.hiveboard.backend.activity.entity.ActivityType;
+import com.h.hiveboard.backend.activity.service.ActivityRecorder;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.CardPayload;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.CardMovedPayload;
@@ -30,6 +34,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.h.hiveboard.backend.board.entity.Board;
+import com.h.hiveboard.backend.label.entity.Label;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.stream.Collectors;
+import static com.h.hiveboard.backend.activity.service.ActivityRecorder.quote;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -51,10 +60,11 @@ public class CardService {
     private final LabelService labelService;         // validates label ids belong to the board
     private final NotificationService notificationService;
     private final BoardEventPublisher boardEventPublisher;
+    private final ActivityRecorder activityRecorder;         // the board's history
 
     @Transactional
     public CardResponse createCard(UUID listId, User user, CreateCardRequest request) {
-        BoardList list = boardListService.getListForRole(listId, user, BoardRole.MEMBER);
+        BoardList list = boardListService.getActiveListForRole(listId, user, BoardRole.MEMBER);
 
         validateDue(request.dueDate(), request.dueTime());
 
@@ -74,6 +84,11 @@ public class CardService {
 
         cardRepository.save(card);
         notifyAssigneeOfChanges(card, user, assigned, flagged);
+        activityRecorder.card(card, user, ActivityType.CARD_CREATED, "added {card} to " + quote(list.getName()));
+        if (assigned) {
+            activityRecorder.card(card, user, ActivityType.CARD_ASSIGNEE,
+                    "assigned {card} to " + card.getAssignee().getFullName());
+        }
 
         CardResponse response = toResponse(card);
         CardPayload payload = new CardPayload(list.getId(), response);
@@ -84,13 +99,14 @@ public class CardService {
 
     @Transactional
     public CardResponse updateCard(UUID cardId, User user, UpdateCardRequest request) {
-        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
+        Card card = getEditableCard(cardId, user);
         if (request.version() != null && !request.version().equals(card.getVersion())) {
             throw new ConflictException("Someone else changed this card while you were editing it. "
                     + "Close it and open it again to see the latest version.");
         }
         boolean wasHidden = card.isHiddenFromViewers();
         validateDue(request.dueDate(), request.dueTime());
+        CardState before = CardState.of(card);
         card.setTitle(request.title());
         card.setDescription(request.description());
         card.setDueDate(request.dueDate());
@@ -106,20 +122,108 @@ public class CardService {
         // Flush so the bumped version is in the response (clients send it back next time)
         cardRepository.saveAndFlush(card);
         notifyAssigneeOfChanges(card, user, assigned, flagged);
+        recordChanges(card, before, user);
 
         CardResponse response = toResponse(card);
         publishCardUpdated(card, wasHidden, response, user);
         return response;
     }
 
+    // What a card looked like before an edit, to describe the change in its history
+    private record CardState(String title, String description, LocalDate dueDate, LocalTime dueTime,
+                             User assignee, Set<Label> labels, boolean highPriority, boolean hidden) {
+        static CardState of(Card card) {
+            return new CardState(card.getTitle(), card.getDescription(), card.getDueDate(), card.getDueTime(),
+                    card.getAssignee(), new HashSet<>(card.getLabels()), card.isHighPriority(),
+                    card.isHiddenFromViewers());
+        }
+    }
+
+    // One history entry per kind of change (renamed, due date, labels, ...)
+    private void recordChanges(Card card, CardState before, User user) {
+        if (!Objects.equals(before.title(), card.getTitle())) {
+            activityRecorder.card(card, user, ActivityType.CARD_RENAMED, "renamed {card} (was " + quote(before.title()) + ")");
+        }
+
+        String oldDescription = blankToNull(before.description());
+        String newDescription = blankToNull(card.getDescription());
+        if (!Objects.equals(oldDescription, newDescription)) {
+            activityRecorder.card(card, user, ActivityType.CARD_DESCRIPTION,
+                    oldDescription == null ? "added a description to {card}"
+                            : newDescription == null ? "removed the description from {card}"
+                            : "edited the description of {card}");
+        }
+
+        if (!Objects.equals(before.dueDate(), card.getDueDate()) || !Objects.equals(before.dueTime(), card.getDueTime())) {
+            activityRecorder.card(card, user, ActivityType.CARD_DUE_DATE,
+                    before.dueDate() == null ? "set the due date of {card} to " + ActivityRecorder.due(card.getDueDate(), card.getDueTime())
+                            : card.getDueDate() == null ? "removed the due date from {card}"
+                            : "changed the due date of {card} from " + ActivityRecorder.due(before.dueDate(), before.dueTime())
+                            + " to " + ActivityRecorder.due(card.getDueDate(), card.getDueTime()));
+        }
+
+        User oldAssignee = before.assignee();
+        User newAssignee = card.getAssignee();
+        Long oldId = oldAssignee != null ? oldAssignee.getId() : null;
+        Long newId = newAssignee != null ? newAssignee.getId() : null;
+        if (!Objects.equals(oldId, newId)) {
+            activityRecorder.card(card, user, ActivityType.CARD_ASSIGNEE,
+                    oldAssignee == null ? "assigned {card} to " + newAssignee.getFullName()
+                            : newAssignee == null ? "unassigned " + oldAssignee.getFullName() + " from {card}"
+                            : "reassigned {card} from " + oldAssignee.getFullName() + " to " + newAssignee.getFullName());
+        }
+
+        String added = labelNames(card.getLabels(), before.labels());
+        String removed = labelNames(before.labels(), card.getLabels());
+        if (!added.isEmpty() || !removed.isEmpty()) {
+            activityRecorder.card(card, user, ActivityType.CARD_LABELS,
+                    removed.isEmpty() ? "added " + added + " to {card}"
+                            : added.isEmpty() ? "removed " + removed + " from {card}"
+                            : "added " + added + " and removed " + removed + " on {card}");
+        }
+
+        recordPriorityChange(card, before.highPriority(), user);
+
+        if (before.hidden() != card.isHiddenFromViewers()) {
+            activityRecorder.card(card, user, ActivityType.CARD_VISIBILITY,
+                    card.isHiddenFromViewers() ? "hid {card} from viewers" : "made {card} visible to viewers");
+        }
+    }
+
+    private void recordPriorityChange(Card card, boolean wasHighPriority, User user) {
+        if (wasHighPriority != card.isHighPriority()) {
+            activityRecorder.card(card, user, ActivityType.CARD_PRIORITY,
+                    card.isHighPriority() ? "flagged {card} as high priority" : "removed the high-priority flag from {card}");
+        }
+    }
+
+    // Labels in `in` but not in `notIn`: "the label “Bug”" / "the labels “Bug”, “UI”"
+    private static String labelNames(Set<Label> in, Set<Label> notIn) {
+        Set<UUID> exclude = notIn.stream().map(Label::getId).collect(Collectors.toSet());
+        List<String> names = in.stream()
+                .filter(label -> !exclude.contains(label.getId()))
+                .map(Label::getName)
+                .sorted(Comparator.comparing(String::toLowerCase))
+                .map(ActivityRecorder::quote)
+                .toList();
+        if (names.isEmpty()) return "";
+        return (names.size() == 1 ? "the label " : "the labels ") + String.join(", ", names);
+    }
+
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text.strip();
+    }
+
     // Flagging moves the card to the top of its list (it's listed first);
     // unflagging puts it back in its normal position.
     @Transactional
     public CardResponse setPriority(UUID cardId, User user, SetPriorityRequest request) {
-        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
+        Card card = getEditableCard(cardId, user);
+        boolean wasHighPriority = card.isHighPriority();
         boolean flagged = applyPriority(card, request.highPriority());
         cardRepository.saveAndFlush(card);
         notifyAssigneeOfChanges(card, user, false, flagged);
+        recordPriorityChange(card, wasHighPriority, user);
 
         CardResponse response = toResponse(card);
         publishCardUpdated(card, card.isHiddenFromViewers(), response, user);
@@ -171,8 +275,8 @@ public class CardService {
     // column, then compact the old column's positions so there's no gap.
     @Transactional
     public CardResponse moveCard(UUID cardId, User user, MoveCardRequest request) {
-        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
-        BoardList targetList = boardListService.getListForRole(request.targetListId(), user, BoardRole.MEMBER);
+        Card card = getEditableCard(cardId, user);
+        BoardList targetList = boardListService.getActiveListForRole(request.targetListId(), user, BoardRole.MEMBER);
 
         if (!targetList.getBoard().getId().equals(card.getBoardList().getBoard().getId())) {
             throw new ForbiddenOperationException("Cards can only move within the same board");
@@ -187,13 +291,15 @@ public class CardService {
 
         if (!sourceList.getId().equals(targetList.getId())) {
             compactPositions(sourceList);
+            activityRecorder.card(card, user, ActivityType.CARD_MOVED,
+                    "moved {card} from " + quote(sourceList.getName()) + " to " + quote(targetList.getName()));
         }
 
         // Dropped at a specific spot: apply the target list's new order. Any mismatch means the
         // list changed meanwhile -> 400, and the whole move rolls back (the client reloads).
         List<Card> targetCards = null;
         if (request.orderedCardIds() != null) {
-            targetCards = cardRepository.findByBoardListOrderByPositionAsc(targetList);
+            targetCards = cardRepository.findByBoardListAndArchivedFalseOrderByPositionAsc(targetList);
             Map<UUID, Card> byId = new HashMap<>();
             targetCards.forEach(c -> byId.put(c.getId(), c));
             List<UUID> orderedIds = request.orderedCardIds();
@@ -225,11 +331,11 @@ public class CardService {
     // (they'd get a surprise "assigned to you" notification), the high-priority flag and comments.
     @Transactional
     public CardResponse duplicateCard(UUID cardId, User user) {
-        Card source = getCardForRole(cardId, user, BoardRole.MEMBER);
+        Card source = getEditableCard(cardId, user);
         BoardList list = source.getBoardList();
 
         // Between the original and the card after it (positions are decimals for exactly this)
-        double position = cardRepository.findByBoardListOrderByPositionAsc(list).stream()
+        double position = cardRepository.findByBoardListAndArchivedFalseOrderByPositionAsc(list).stream()
                 .map(Card::getPosition)
                 .filter(p -> p > source.getPosition())
                 .findFirst()
@@ -248,6 +354,8 @@ public class CardService {
                 .hiddenFromViewers(source.isHiddenFromViewers())
                 .build();
         cardRepository.save(copy);
+        activityRecorder.card(copy, user, ActivityType.CARD_DUPLICATED,
+                "added {card} as a copy of " + quote(source.getTitle()));
 
         CardResponse response = toResponse(copy);
         CardPayload payload = new CardPayload(list.getId(), response);
@@ -261,11 +369,11 @@ public class CardService {
     // insert-at-index math server-side.
     @Transactional
     public void reorderCards(UUID listId, User user, ReorderCardsRequest request) {
-        BoardList list = boardListService.getListForRole(listId, user, BoardRole.MEMBER);
+        BoardList list = boardListService.getActiveListForRole(listId, user, BoardRole.MEMBER);
 
         Map<UUID, Card> byId = new HashMap<>();
         for (Card card : list.getCards()) {
-            byId.put(card.getId(), card);
+            if (!card.isArchived()) byId.put(card.getId(), card); // archived cards aren't on the board
         }
 
         List<UUID> orderedIds = request.orderedCardIds();
@@ -294,6 +402,7 @@ public class CardService {
         Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
         BoardList list = card.getBoardList();
         boolean hidden = card.isHiddenFromViewers();
+        activityRecorder.card(card, user, ActivityType.CARD_DELETED, "deleted {card} from " + quote(list.getName()));
         cardRepository.delete(card);
         compactPositions(list);
 
@@ -302,8 +411,76 @@ public class CardService {
                 hidden ? null : "CARD_DELETED", payload);
     }
 
+    // ---- Archive ----
+
+    // Takes the card off the board into the board's archive (it keeps everything:
+    // comments, labels, history). Restore puts it back.
+    @Transactional
+    public void archiveCard(UUID cardId, User user) {
+        Card card = getEditableCard(cardId, user);
+        BoardList list = card.getBoardList();
+        card.setArchived(true);
+        card.setArchivedAt(Instant.now().truncatedTo(ChronoUnit.MICROS));
+        card.setArchivedBy(user);
+        cardRepository.saveAndFlush(card);
+        compactPositions(list);
+
+        activityRecorder.card(card, user, ActivityType.CARD_ARCHIVED, "archived {card} from " + quote(list.getName()));
+        CardArchivedPayload payload = new CardArchivedPayload(list.getId(), card.getId());
+        boardEventPublisher.publish(list.getBoard().getId(), "CARD_ARCHIVED", user, payload,
+                card.isHiddenFromViewers() ? null : "CARD_ARCHIVED", payload);
+    }
+
+    // Back onto the board, at the end of its list (or of request.listId, e.g. when its
+    // own list is archived)
+    @Transactional
+    public CardResponse restoreCard(UUID cardId, User user, RestoreCardRequest request) {
+        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
+        if (!card.isArchived()) {
+            throw new IllegalArgumentException("This card isn't archived");
+        }
+        BoardList target = card.getBoardList();
+        if (request != null && request.listId() != null) {
+            target = boardListService.getListForRole(request.listId(), user, BoardRole.MEMBER);
+            if (!target.getBoard().getId().equals(card.getBoardList().getBoard().getId())) {
+                throw new ForbiddenOperationException("Cards can only be restored to a list on the same board");
+            }
+        }
+        if (target.isArchived()) {
+            throw new IllegalArgumentException("The list " + quote(target.getName())
+                    + " is archived too. Pick another list, or restore the list first.");
+        }
+
+        card.setBoardList(target);
+        card.setPosition(cardRepository.findMaxPositionByListId(target.getId()).orElse(0.0) + 1.0);
+        card.setArchived(false);
+        card.setArchivedAt(null);
+        card.setArchivedBy(null);
+        cardRepository.saveAndFlush(card);
+
+        activityRecorder.card(card, user, ActivityType.CARD_RESTORED, "restored {card} to " + quote(target.getName()));
+        CardResponse response = toResponse(card);
+        CardPayload payload = new CardPayload(target.getId(), response);
+        boardEventPublisher.publish(target.getBoard().getId(), "CARD_RESTORED", user, payload,
+                card.isHiddenFromViewers() ? null : "CARD_RESTORED", payload);
+        return response;
+    }
+
+    // For changes: archived cards (or cards in an archived list) have to be restored first.
+    // Public so CommentService can use it.
+    public Card getEditableCard(UUID cardId, User user) {
+        Card card = getCardForRole(cardId, user, BoardRole.MEMBER);
+        if (card.isArchived()) {
+            throw new IllegalArgumentException("This card is archived. Restore it first.");
+        }
+        if (card.getBoardList().isArchived()) {
+            throw new IllegalArgumentException("This card's list is archived. Restore the list first.");
+        }
+        return card;
+    }
+
     private void compactPositions(BoardList list) {
-        List<Card> remaining = cardRepository.findByBoardListOrderByPositionAsc(list);
+        List<Card> remaining = cardRepository.findByBoardListAndArchivedFalseOrderByPositionAsc(list);
         for (int i = 0; i < remaining.size(); i++) {
             remaining.get(i).setPosition((double) i);
         }

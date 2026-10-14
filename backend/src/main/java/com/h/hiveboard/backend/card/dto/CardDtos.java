@@ -42,4 +42,8 @@ public class CardDtos {
     // Reordering cards within one column (drag within the same list) —
     // same "send the full ordered array" contract as lists.
     public record ReorderCardsRequest(@NotEmpty List<UUID> orderedCardIds) {}
+
+    // Restore an archived card. listId: where to put it (null = the list it was in;
+    // needed when that list is archived too)
+    public record RestoreCardRequest(UUID listId) {}
 }

@@ -3,6 +3,8 @@ import { X, MessageSquare, Reply } from 'lucide-react';
 import { getComments, addComment } from '../../api/comments';
 import { timeAgo } from '../../utils/timeAgo';
 import { getApiErrorMessage } from '../../utils/apiError';
+import MentionTextarea from '../../components/Mentions/MentionTextarea';
+import { mentionedIds, splitMentions } from '../../utils/mentions';
 import './CommentsPopup.css';
 
 const TEXT_MAX = 2000; // matches @Size(max = 2000) on the backend
@@ -31,7 +33,10 @@ const fetchComments = (cardId) => {
 // Viewers (canComment = false) can read comments and replies but not post.
 // refreshKey: bump it to reload (e.g. someone else commented while this is open).
 // onCommentAdded(totalCount) reports the new total so the card's count stays exact.
-export default function CommentsPopup({ card, canComment = true, refreshKey = 0, onClose, onCommentAdded }) {
+// members / myUserId: who can be @mentioned (people who can see the card, not yourself).
+export default function CommentsPopup({ card, canComment = true, refreshKey = 0, members = [], myUserId = null, onClose, onCommentAdded }) {
+  // Viewers can't see a card hidden from them, so they can't be mentioned on it
+  const mentionable = members.filter(m => m.userId !== myUserId && !(card.hiddenFromViewers && m.role === 'VIEWER'));
   const [result, setResult] = useState(null); // null while loading
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -71,7 +76,7 @@ export default function CommentsPopup({ card, canComment = true, refreshKey = 0,
     setPosting(true);
     setPostError('');
     try {
-      const response = await addComment(card.id, trimmed);
+      const response = await addComment(card.id, trimmed, null, mentionedIds(trimmed, mentionable));
       setResult(prev => (prev ? { ...prev, comments: [response.data, ...prev.comments] } : prev));
       setText('');
       onCommentAdded(totalCount + 1);
@@ -111,7 +116,7 @@ export default function CommentsPopup({ card, canComment = true, refreshKey = 0,
     setReplying(true);
     setReplyError('');
     try {
-      const response = await addComment(card.id, trimmedReply, replyTo);
+      const response = await addComment(card.id, trimmedReply, replyTo, mentionedIds(trimmedReply, mentionable));
       const reply = response.data;
       // Backend files it under the thread's top-level comment (reply.parentId)
       setResult(prev => (prev ? {
@@ -168,7 +173,11 @@ export default function CommentsPopup({ card, canComment = true, refreshKey = 0,
             {timeAgo(comment.createdAt)}
           </time>
         </div>
-        <p className="comment-text">{comment.text}</p>
+        <p className="comment-text">
+          {splitMentions(comment.text, comment.mentions).map((part, i) => (part.mention ? (
+            <span key={i} className={`comment-mention ${part.mention.id === myUserId ? 'me' : ''}`}>{part.text}</span>
+          ) : <span key={i}>{part.text}</span>))}
+        </p>
         {canComment && (
           <button
             type="button"
@@ -211,11 +220,12 @@ export default function CommentsPopup({ card, canComment = true, refreshKey = 0,
         {/* New comment (Members and Admins) */}
         {canComment ? (
           <form className="comments-popup-form" onSubmit={handleSubmit}>
-            <textarea
+            <MentionTextarea
               className="comments-popup-input"
-              placeholder="Write a comment..."
+              placeholder="Write a comment... Type @ to mention someone"
+              members={mentionable}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={setText}
               onKeyDown={handleKeyDown}
               maxLength={TEXT_MAX}
               rows={3}
@@ -276,11 +286,12 @@ export default function CommentsPopup({ card, canComment = true, refreshKey = 0,
 
                     {replyTo === thread.id && (
                       <form className="comment-reply-form" onSubmit={handleReplySubmit}>
-                        <textarea
+                        <MentionTextarea
                           className="comments-popup-input reply"
                           placeholder={`Reply to ${thread.authorName}...`}
+                          members={mentionable}
                           value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
+                          onChange={setReplyText}
                           onKeyDown={handleReplyKeyDown}
                           maxLength={TEXT_MAX}
                           rows={2}

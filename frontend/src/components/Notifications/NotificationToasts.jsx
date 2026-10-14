@@ -4,32 +4,46 @@ import { X } from 'lucide-react';
 import { metaFor, linkFor } from './notificationMeta';
 import './NotificationToasts.css';
 
-const TOAST_MS = 6000;
+const TOAST_MS = 6000;       // notifications
+const APP_TOAST_MS = 4000;   // the app's own messages (e.g. "Archived ...")
 
 function Toast({ notification, onDismiss, onOpen }) {
   const navigate = useNavigate();
-  const { icon: Icon, tone } = metaFor(notification.type);
-  const link = linkFor(notification);
+  const local = Boolean(notification.local);
+  const meta = local ? { icon: notification.icon, tone: notification.tone || 'honey' } : metaFor(notification.type);
+  const { icon: Icon, tone } = meta;
+  const link = local ? null : linkFor(notification);
+  const duration = local ? (notification.duration || APP_TOAST_MS) : TOAST_MS;
 
   // Each toast closes itself after a few seconds
   useEffect(() => {
-    const timer = setTimeout(() => onDismiss(notification.id), TOAST_MS);
+    const timer = setTimeout(() => onDismiss(notification.id), duration);
     return () => clearTimeout(timer);
-  }, [notification.id, onDismiss]);
+  }, [notification.id, onDismiss, duration]);
 
   const open = () => {
-    onOpen(notification);
+    if (!local) onOpen(notification);
     onDismiss(notification.id);
-    if (link) navigate(link);
+    if (link) navigate(link.path, { state: link.state });
+  };
+
+  const runAction = () => {
+    onDismiss(notification.id);
+    notification.action.run();
   };
 
   return (
     <div className={`notif-toast tone-${tone}`} role="status">
-      <span className="notif-toast-icon" aria-hidden="true"><Icon size={16} /></span>
+      <span className="notif-toast-icon" aria-hidden="true">{Icon && <Icon size={16} />}</span>
       <button type="button" className="notif-toast-body" onClick={open}>
-        <span className="notif-toast-title">New notification</span>
+        <span className="notif-toast-title">{local ? notification.title : 'New notification'}</span>
         <span className="notif-toast-message">{notification.message}</span>
       </button>
+      {local && notification.action && (
+        <button type="button" className="notif-toast-action" onClick={runAction}>
+          {notification.action.label}
+        </button>
+      )}
       <button
         type="button"
         className="notif-toast-close"

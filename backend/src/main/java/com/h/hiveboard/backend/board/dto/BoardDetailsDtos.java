@@ -60,11 +60,12 @@ public class BoardDetailsDtos {
     }
 
     public record ListResponse(UUID id, String name, Double position, List<CardResponse> cards) {
-        // forViewer leaves out cards hidden from viewers
+        // Archived cards aren't on the board; forViewer also leaves out cards hidden from viewers
         public static ListResponse from(BoardList list, boolean forViewer) {
-            List<Card> cards = forViewer
-                    ? list.getCards().stream().filter(card -> !card.isHiddenFromViewers()).toList()
-                    : list.getCards();
+            List<Card> cards = list.getCards().stream()
+                    .filter(card -> !card.isArchived())
+                    .filter(card -> !forViewer || !card.isHiddenFromViewers())
+                    .toList();
             return new ListResponse(list.getId(), list.getName(), list.getPosition(), CardResponse.inDisplayOrder(cards));
         }
     }

@@ -223,6 +223,13 @@
   flex-direction: column;
   gap: 10px;
   padding: 4px 12px 8px;
+  /* Still scrolls (wheel, touch, keyboard, dragging a card to the edge), just without the bar */
+  scrollbar-width: none;     /* Firefox, Chrome 121+, Edge */
+  -ms-overflow-style: none;  /* old Edge */
+}
+
+.board-list-cards::-webkit-scrollbar {
+  display: none;             /* older Chrome, Safari */
 }
 
 .board-list-empty {
@@ -597,4 +604,11 @@
   .board-list-create {
     flex-basis: 85vw;
   }
+}
+
+.boardview-filter-note {
+  margin: -6px 0 12px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }

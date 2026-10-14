@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Search, HelpCircle, ChevronDown, X } from 'lucide-react';
 import NotificationBell from '../Notifications/NotificationBell';
 import './Topbar.css';
+import { getStoredUser } from '../../utils/authSession';
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
@@ -36,19 +37,8 @@ export default function Topbar({ showSearch = true, searchValue = '', onSearchCh
     }
   };
 
-  const storedUser = localStorage.getItem('user');
-  let userName = 'Harini Selvaraj';
-  
-  if (storedUser) {
-    try {
-      const parsed = JSON.parse(storedUser);
-      if (parsed && parsed.fullName) {
-        userName = parsed.fullName;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
+  const storedUser = getStoredUser();
+  const userName = storedUser && storedUser.fullName ? storedUser.fullName : 'Harini Selvaraj';
 
   // Get initials for profile placeholder
   const getInitials = (name) => {

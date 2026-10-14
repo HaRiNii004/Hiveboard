@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken } from '../utils/authSession';
 
 const api = axios.create({
   baseURL: '/api',
@@ -10,7 +11,7 @@ const api = axios.create({
 // Request interceptor to automatically attach authorization bearer token if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

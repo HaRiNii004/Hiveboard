@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import logo from '../../assets/logo.svg';
 import './Sidebar.css';
+import { clearSession } from '../../utils/authSession';
 
 const COLLAPSED_KEY = 'sidebarCollapsed';
 
@@ -41,8 +42,7 @@ export default function Sidebar() {
   }, [collapsed]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearSession();
     navigate('/login');
   };
 

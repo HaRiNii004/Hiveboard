@@ -26,6 +26,51 @@
   animation: itemPopupSlideUp var(--transition-spring);
 }
 
+/* Cards: wider, and with a side column (the card's activity) when editing */
+.item-popup-card.wide {
+  max-width: 640px;
+}
+
+.item-popup-card.with-aside {
+  max-width: 1040px;
+}
+
+.item-popup-layout {
+  display: block;
+}
+
+.item-popup-card.with-aside .item-popup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Stays in view while the form scrolls */
+.item-popup-aside {
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-left: 24px;
+  border-left: 1px solid #f7e6d2;
+}
+
+@media (max-width: 900px) {
+  .item-popup-card.with-aside .item-popup-layout {
+    display: block;
+  }
+
+  .item-popup-aside {
+    position: static;
+    max-height: none;
+    margin-top: 20px;
+    padding: 16px 0 0;
+    border-left: none;
+    border-top: 1px solid #f7e6d2;
+  }
+}
+
 .item-popup-header {
   display: flex;
   justify-content: space-between;
@@ -208,6 +253,15 @@
 /* Extra action on the left of the buttons (e.g. "Duplicate") */
 .item-popup-actions-extra {
   margin-right: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-popup-actions-extra .item-popup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .item-popup-duplicate {

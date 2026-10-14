@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
@@ -73,6 +75,19 @@ public class Card {
     @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private boolean hiddenFromViewers = false;
+
+    // Archived: off the board, but kept (with everything on it) and can be restored.
+    // The column default lets Hibernate add it to existing rows.
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean archived = false;
+
+    private Instant archivedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "archived_by_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User archivedBy;
 
     // Optimistic locking: bumped on every save. Clients send back the version they
     // loaded, so a stale edit gets a 409 instead of silently overwriting someone else.

@@ -3,6 +3,9 @@ package com.h.hiveboard.backend.boardlist.entity;
 import com.h.hiveboard.backend.board.entity.Board;
 import com.h.hiveboard.backend.card.entity.Card;
 import jakarta.persistence.*;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.OnDelete;
+import com.h.hiveboard.backend.auth.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,6 +44,19 @@ public class BoardList {
     @OrderBy("position ASC")
     @Builder.Default
     private List<Card> cards = new ArrayList<>();
+
+    // Archived: off the board, but kept (with everything on it) and can be restored.
+    // The column default lets Hibernate add it to existing rows.
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean archived = false;
+
+    private Instant archivedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "archived_by_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private User archivedBy;
 
     @CreationTimestamp
     private Instant createdAt;

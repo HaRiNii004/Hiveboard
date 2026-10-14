@@ -11,6 +11,11 @@ import java.util.UUID;
 public interface BoardListRepository extends JpaRepository<BoardList, UUID> {
     List<BoardList> findByBoardIdOrderByPositionAsc(UUID boardId);
 
+    // The board's archived lists, most recently archived first
+    @Query("SELECT l FROM BoardList l LEFT JOIN FETCH l.archivedBy "
+            + "WHERE l.board.id = :boardId AND l.archived = true ORDER BY l.archivedAt DESC")
+    List<BoardList> findArchivedByBoardId(UUID boardId);
+
     @Query("SELECT MAX(l.position) FROM BoardList l WHERE l.board.id = :boardId")
     Optional<Double> findMaxPositionByBoardId(UUID boardId);
 }

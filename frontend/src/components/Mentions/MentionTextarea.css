@@ -1,0 +1,82 @@
+.mention-input {
+  position: relative;
+}
+
+.mention-input textarea {
+  width: 100%;
+}
+
+.mention-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid #f7e6d2;
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  box-shadow: var(--shadow-lg);
+}
+
+.mention-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mention-suggestion.active {
+  background-color: var(--color-primary-light);
+}
+
+.mention-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.mention-name {
+  font-weight: 600;
+}
+
+.mention-email {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* "@Name" inside a posted comment */
+.comment-mention {
+  padding: 0 3px;
+  border-radius: 4px;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  font-weight: 600;
+}
+
+.comment-mention.me {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}

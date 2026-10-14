@@ -81,6 +81,18 @@ public class NotificationService {
         }
     }
 
+    // Someone @mentioned people in a comment (or reply): tell each of them.
+    public void commentMentioned(Comment comment, Collection<User> mentioned, User actor) {
+        Card card = comment.getCard();
+        String message = actor.getFullName() + " mentioned you on \"" + card.getTitle() + "\": "
+                + snippet(comment.getText());
+        for (User recipient : mentioned) {
+            if (canSeeCard(card, recipient)) {
+                send(recipient, actor, NotificationType.COMMENT_MENTION, message, boardOf(card).getId(), card.getId());
+            }
+        }
+    }
+
     // Someone joined a board: tell everyone else on it.
     public void memberJoined(Board board, User newMember) {
         for (User member : otherMembers(board, newMember)) {

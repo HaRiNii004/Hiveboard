@@ -1,0 +1,16 @@
+.card-activity-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-brand);
+}
+
+.card-activity .activity-status {
+  justify-content: flex-start;
+  text-align: left;
+  padding: 8px 0;
+}

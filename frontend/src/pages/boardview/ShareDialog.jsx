@@ -5,6 +5,7 @@ import { createInvitation, getPendingInvitations, revokeInvitation } from '../..
 import { ROLE_OPTIONS, roleLabel } from '../../utils/boardPermissions';
 import { getApiErrorMessage } from '../../utils/apiError';
 import './ShareDialog.css';
+import { getStoredUser } from '../../utils/authSession';
 
 const initials = (name) =>
   (name || '?')
@@ -17,7 +18,7 @@ const initials = (name) =>
 
 const currentUserEmail = () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = getStoredUser();
     return user && user.email ? user.email.toLowerCase() : '';
   } catch {
     return '';

@@ -1,9 +1,7 @@
-// The logged-in user's email (lowercased), from what the login page stored; '' if unknown
+import { getStoredUser } from './authSession';
+
+// The logged-in user's email (lowercased); '' if unknown
 export const currentUserEmail = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem('user'));
-    return user && user.email ? user.email.toLowerCase() : '';
-  } catch {
-    return '';
-  }
+  const user = getStoredUser();
+  return user && user.email ? user.email.toLowerCase() : '';
 };

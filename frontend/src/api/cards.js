@@ -41,3 +41,20 @@ export const moveCard = (cardId, targetListId, orderedCardIds) => {
 export const duplicateCard = (cardId) => {
   return api.post(`/cards/${cardId}/duplicate`);
 };
+
+// ---- Archive ----
+
+// Off the board into the board's archive
+export const archiveCard = (cardId) => {
+  return api.patch(`/cards/${cardId}/archive`);
+};
+
+// Back onto the board; listId only needed when its own list is archived too
+export const restoreCard = (cardId, listId = null) => {
+  return api.patch(`/cards/${cardId}/restore`, { listId });
+};
+
+// Deletes for good (from the archive)
+export const deleteCard = (cardId) => {
+  return api.delete(`/cards/${cardId}`);
+};

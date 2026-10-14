@@ -48,6 +48,25 @@ public class BoardListController {
         return ResponseEntity.ok(boardListService.updateList(listId, user, request));
     }
 
+    @PatchMapping("/lists/{listId}/archive")
+    public ResponseEntity<Void> archive(@AuthenticationPrincipal User user, @PathVariable UUID listId) {
+        boardListService.archiveList(listId, user);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/lists/{listId}/restore")
+    public ResponseEntity<ListResponse> restore(@AuthenticationPrincipal User user, @PathVariable UUID listId) {
+        return ResponseEntity.ok(boardListService.restoreList(listId, user));
+    }
+
+    // Archive every card in the list -> { "archived": n }
+    @PatchMapping("/lists/{listId}/archive-cards")
+    public ResponseEntity<java.util.Map<String, Integer>> archiveCards(@AuthenticationPrincipal User user,
+                                                                       @PathVariable UUID listId) {
+        return ResponseEntity.ok(java.util.Map.of("archived", boardListService.archiveAllCards(listId, user)));
+    }
+
+    // Deletes for good (from the archive)
     @DeleteMapping("/lists/{listId}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal User user, @PathVariable UUID listId) {
         boardListService.deleteList(listId, user);

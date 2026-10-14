@@ -1,30 +1,57 @@
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { login } from '../../api/auth';
 import HiveVisual from '../../components/HiveVisual/HiveVisual';
+import GoogleSignIn from '../../components/GoogleSignIn/GoogleSignIn';
 import { getSafeRedirect, withRedirect } from '../../utils/redirect';
+import { saveSession } from '../../utils/authSession';
+import { getApiErrorMessage } from '../../utils/apiError';
 import logo from '../../assets/logo.svg';
-import googleIcon from '../../assets/google.svg';
 import './Login.css';
 
+const REMEMBER_EMAIL_KEY = 'rememberEmail';
+
+const rememberedEmail = () => {
+  try {
+    return localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  // After a password reset: { notice, email }
+  const state = location.state || {};
+  const [email, setEmail] = useState(() => state.email || rememberedEmail());
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => Boolean(rememberedEmail()));
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // e.g. back to /invite/<token> after logging in from an invite link
   const redirect = getSafeRedirect(searchParams);
 
+  // Logged in (by password or Google): keep the session and go on
+  const finishLogin = (auth) => {
+    saveSession(auth, rememberMe);
+    try {
+      if (rememberMe) localStorage.setItem(REMEMBER_EMAIL_KEY, auth.email);
+      else localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    } catch {
+      // only a convenience
+    }
+    navigate(redirect || '/dashboard');
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Please fill in all fields.');
       return;
@@ -32,29 +59,13 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const response = await login(email, password);
-      const { token, fullName } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify({ email, fullName }));
-      
-      if (rememberMe) {
-        localStorage.setItem('rememberEmail', email);
-      } else {
-        localStorage.removeItem('rememberEmail');
-      }
-
-      navigate(redirect || '/dashboard');
+      const response = await login(email, password, rememberMe);
+      finishLogin(response.data);
     } catch (err) {
       console.error(err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else if (err.response && err.response.status === 401) {
-        setError('Invalid email or password.');
-      } else {
-        setError('Connection to backend failed. Please try again.');
-      }
-    } finally {
+      setError(err.response && err.response.status === 401
+        ? 'Invalid email or password.'
+        : getApiErrorMessage(err, 'Connection to backend failed. Please try again.'));
       setLoading(false);
     }
   };
@@ -68,7 +79,7 @@ export default function Login() {
       <div className="login-content">
         <div className="form-column">
           <div className="form-wrapper">
-            
+
             {/* Brand Header */}
             <div className="brand-header">
               <div className="logo-wrapper">
@@ -85,8 +96,8 @@ export default function Login() {
               <Link to={withRedirect('/signup', redirect)} className="tab-btn inactive">Sign Up</Link>
             </div>
 
-            {/* Error Notification */}
-            {error && <div className="error-alert">{error}</div>}
+            {state.notice && !error && <div className="success-alert" role="status">{state.notice}</div>}
+            {error && <div className="error-alert" role="alert">{error}</div>}
 
             {/* Form */}
             <form onSubmit={handleLogin} className="auth-form">
@@ -131,7 +142,7 @@ export default function Login() {
               </div>
 
               <div className="form-actions">
-                <label className="checkbox-label">
+                <label className="checkbox-label" title="Stay logged in on this device for 30 days">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -140,7 +151,7 @@ export default function Login() {
                   <span className="custom-checkbox"></span>
                   Remember me
                 </label>
-                <a href="#forgot" className="forgot-link">Forgot password?</a>
+                <Link to="/forgot-password" state={{ email }} className="forgot-link">Forgot password?</Link>
               </div>
 
               <button type="submit" className="submit-btn" disabled={loading}>
@@ -148,15 +159,8 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="divider">
-              <span>or continue with</span>
-            </div>
-
-            {/* Social Authentication */}
-            <button type="button" className="social-btn google">
-              <img src={googleIcon} alt="Google Logo" width="18" height="18" />
-              <span>Google</span>
-            </button>
+            {/* Only shown when Google sign-in is set up on the server */}
+            <GoogleSignIn rememberMe={rememberMe} onSuccess={finishLogin} onError={setError} />
 
             {/* Form Footer */}
             <p className="form-footer">

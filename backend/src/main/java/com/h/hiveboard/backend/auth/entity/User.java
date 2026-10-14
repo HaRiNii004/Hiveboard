@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -36,6 +37,13 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Role role = Role.USER;
+
+    // Set when the password is reset: logins (JWTs) issued before this stop working.
+    private Instant passwordChangedAt;
+
+    // The Google account linked by "Continue with Google" (Google's stable user id)
+    @Column(unique = true)
+    private String googleSubject;
 
     // --- UserDetails contract (Spring Security reads these) ---
 

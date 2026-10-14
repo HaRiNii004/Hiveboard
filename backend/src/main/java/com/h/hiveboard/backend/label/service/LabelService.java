@@ -4,6 +4,8 @@ import com.h.hiveboard.backend.auth.entity.User;
 import com.h.hiveboard.backend.board.entity.Board;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.service.BoardAccessService;
+import com.h.hiveboard.backend.activity.entity.ActivityType;
+import com.h.hiveboard.backend.activity.service.ActivityRecorder;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.LabelPayload;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.LabelDeletedPayload;
@@ -30,6 +32,7 @@ public class LabelService {
     private final LabelRepository labelRepository;
     private final BoardAccessService boardAccessService; // role checks
     private final BoardEventPublisher boardEventPublisher;
+    private final ActivityRecorder activityRecorder;         // the board's history
 
     @Transactional(readOnly = true)
     public List<LabelResponse> getLabels(UUID boardId, User user) {
@@ -56,6 +59,7 @@ public class LabelService {
                 .build();
 
         labelRepository.save(label);
+        activityRecorder.board(board, user, ActivityType.LABEL_CREATED, "created the label " + ActivityRecorder.quote(label.getName()));
         LabelResponse response = LabelResponse.from(label);
         boardEventPublisher.publish(board.getId(), "LABEL_CREATED", user, new LabelPayload(response));
         return response;
@@ -70,9 +74,19 @@ public class LabelService {
             throw new IllegalArgumentException("A label named \"" + name + "\" already exists on this board");
         }
 
+        String oldName = label.getName();
+        LabelColor oldColor = label.getColor();
         label.setName(name);
         label.setColor(request.color());
         labelRepository.save(label);
+        boolean renamed = !oldName.equals(label.getName());
+        boolean recoloured = oldColor != label.getColor();
+        if (renamed || recoloured) {
+            activityRecorder.board(label.getBoard(), user, ActivityType.LABEL_UPDATED,
+                    renamed ? "renamed the label " + ActivityRecorder.quote(oldName) + " to " + ActivityRecorder.quote(label.getName())
+                            + (recoloured ? " and changed its colour" : "")
+                            : "changed the colour of the label " + ActivityRecorder.quote(label.getName()));
+        }
         LabelResponse response = LabelResponse.from(label);
         boardEventPublisher.publish(label.getBoard().getId(), "LABEL_UPDATED", user, new LabelPayload(response));
         return response;
@@ -82,6 +96,7 @@ public class LabelService {
     public void deleteLabel(UUID labelId, User user) {
         Label label = getLabelForMember(labelId, user);
         UUID boardId = label.getBoard().getId();
+        activityRecorder.board(label.getBoard(), user, ActivityType.LABEL_DELETED, "deleted the label " + ActivityRecorder.quote(label.getName()));
         labelRepository.deleteCardAssignments(label.getId());
         labelRepository.delete(label);
         boardEventPublisher.publish(boardId, "LABEL_DELETED", user, new LabelDeletedPayload(labelId));

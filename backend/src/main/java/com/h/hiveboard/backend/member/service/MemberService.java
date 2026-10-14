@@ -10,6 +10,8 @@ import com.h.hiveboard.backend.member.entity.BoardMember;
 import com.h.hiveboard.backend.member.entity.BoardRole;
 import com.h.hiveboard.backend.member.repository.BoardMemberRepository;
 import com.h.hiveboard.backend.notification.service.NotificationService;
+import com.h.hiveboard.backend.activity.entity.ActivityType;
+import com.h.hiveboard.backend.activity.service.ActivityRecorder;
 import com.h.hiveboard.backend.realtime.service.BoardEventPublisher;
 import com.h.hiveboard.backend.todo.repository.TodoItemRepository;
 import com.h.hiveboard.backend.realtime.event.BoardEventPayloads.MemberPayload;
@@ -30,6 +32,7 @@ public class MemberService {
     private final CardRepository cardRepository;
     private final NotificationService notificationService;
     private final BoardEventPublisher boardEventPublisher;
+    private final ActivityRecorder activityRecorder;         // the board's history
     private final TodoItemRepository todoItemRepository;
 
     @Transactional(readOnly = true)
@@ -50,8 +53,14 @@ public class MemberService {
             ensureNotLastAdmin(boardId, "demote");
         }
 
+        BoardRole oldRole = target.getRole();
         target.setRole(request.role());
         boardMemberRepository.save(target);
+        if (oldRole != target.getRole()) {
+            activityRecorder.board(target.getBoard(), user, ActivityType.MEMBER_ROLE_CHANGED,
+                    "changed the role of " + target.getUser().getFullName() + " from "
+                            + ActivityRecorder.role(oldRole) + " to " + ActivityRecorder.role(target.getRole()));
+        }
         MemberResponse response = MemberResponse.from(target);
         // The person whose role changed reloads the board (what they can see may change)
         boardEventPublisher.publish(boardId, "MEMBER_ROLE_CHANGED", user, new MemberPayload(response));
@@ -80,8 +89,11 @@ public class MemberService {
         todoItemRepository.unlinkBoard(target.getUser().getId(), boardId);
         if (leaving) {
             notificationService.memberLeft(caller.getBoard(), user);
+            activityRecorder.board(caller.getBoard(), user, ActivityType.MEMBER_LEFT, "left the board");
         } else {
             notificationService.memberRemoved(caller.getBoard(), target.getUser(), user);
+            activityRecorder.board(caller.getBoard(), user, ActivityType.MEMBER_REMOVED,
+                    "removed " + target.getUser().getFullName() + " from the board");
         }
         // Published before the delete so the removed person is still a recipient and their
         // board closes; after this they get nothing more from this board.

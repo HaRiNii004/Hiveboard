@@ -3,6 +3,7 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { NotificationsContext } from './notificationsContext';
 import NotificationToasts from './NotificationToasts';
 import { useRealtime } from '../Realtime/useRealtime';
+import { getToken } from '../../utils/authSession';
 
 const POLL_MS = 30000;     // fallback check; new notifications normally arrive over the WebSocket
 const OVERLAP_MS = 30000;  // re-ask a little further back so nothing committed late is missed
@@ -13,7 +14,7 @@ const byNewest = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
 
 // Resolves (never rejects) with the poll result, or null when logged out / on error.
 const fetchSince = (after) => {
-  if (!localStorage.getItem('token')) return Promise.resolve(null);
+  if (!getToken()) return Promise.resolve(null);
   return getNotifications(after)
     .then(response => response.data)
     .catch(err => {
@@ -40,7 +41,7 @@ export default function NotificationsProvider({ children }) {
 
     const tick = () => {
       // Someone logged out or a different user logged in: start over
-      const currentToken = localStorage.getItem('token');
+      const currentToken = getToken();
       if (currentToken !== token.current) {
         token.current = currentToken;
         seenIds.current = new Set();
@@ -123,9 +124,17 @@ export default function NotificationsProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  // A message from the app itself (not a server notification) in the same bottom-right
+  // stack, e.g. "Archived ..." with Undo:
+  //   { title, message, icon, tone, action: { label, run }, duration (ms) }
+  const showToast = useCallback((toast) => {
+    const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setToasts(prev => [...prev, { ...toast, id, local: true }]);
+  }, []);
+
   const value = useMemo(
-    () => ({ notifications, unreadCount, markRead, markAllRead }),
-    [notifications, unreadCount, markRead, markAllRead]
+    () => ({ notifications, unreadCount, markRead, markAllRead, showToast }),
+    [notifications, unreadCount, markRead, markAllRead, showToast]
   );
 
   return (

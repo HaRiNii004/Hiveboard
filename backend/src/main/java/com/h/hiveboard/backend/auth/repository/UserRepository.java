@@ -8,4 +8,9 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
+
+    // Emails are stored as typed, so "Forgot password" and Google match regardless of case
+    Optional<User> findFirstByEmailIgnoreCase(String email);
+
+    Optional<User> findByGoogleSubject(String googleSubject);
 }
